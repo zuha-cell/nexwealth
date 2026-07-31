@@ -1,0 +1,198 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Admin — Weekly Data Upload">
+  <section class="max-w-3xl mx-auto px-6 py-16">
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="font-display text-3xl text-indigo">Weekly data upload</h1>
+      <button id="logout-btn" class="text-sm text-ink/50 hover:text-indigo">Log out</button>
+    </div>
+
+    <p id="auth-check" class="text-sm text-ink/50">Checking login...</p>
+
+    <div id="upload-panel" class="hidden">
+      <p class="text-ink/65 mb-6">
+        Upload this week's "MF &amp; ETFs Ready Reckoner" .xlsx exactly as
+        received. It'll be parsed in your browser first so you can review the
+        count before anything gets saved.
+      </p>
+
+      <label class="block border-2 border-dashed border-line rounded-2xl p-10 text-center cursor-pointer hover:border-indigo transition-colors">
+        <input id="file-input" type="file" accept=".xlsx" class="hidden" />
+        <p class="text-ink/60">Click to choose the weekly .xlsx file</p>
+      </label>
+
+      <div id="preview" class="hidden mt-8">
+        <h2 class="font-display text-lg text-indigo mb-3">Preview</h2>
+        <p id="preview-summary" class="text-sm text-ink/70 mb-4"></p>
+        <div id="preview-table" class="text-xs font-mono border border-line rounded-xl p-4 max-h-64 overflow-y-auto space-y-1"></div>
+        <button id="confirm-upload" class="mt-6 bg-indigo text-paper px-6 py-3 rounded-full font-medium hover:bg-indigoLight transition-colors">
+          Confirm and save to database
+        </button>
+        <p id="upload-status" class="text-sm mt-4"></p>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    import { auth, db } from "../../lib/firebase";
+    import { onAuthStateChanged, signOut } from "firebase/auth";
+    import { writeBatch, doc, collection, setDoc, serverTimestamp } from "firebase/firestore";
+    import * as XLSX from "xlsx";
+
+    // ---- Auth guard ----
+    onAuthStateChanged(auth, (user) => {
+      const authCheck = document.getElementById("auth-check")!;
+      const panel = document.getElementById("upload-panel")!;
+      if (user) {
+        authCheck.classList.add("hidden");
+        panel.classList.remove("hidden");
+      } else {
+        window.location.href = "/admin";
+      }
+    });
+
+    document.getElementById("logout-btn")?.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "/admin";
+    });
+
+    // ---- Parsing logic — mirrors scripts/convert_weekly_data.py ----
+    const SKIP_SHEETS = new Set([
+      "Template ID", "Home", "Mirae Asset Schemes", "Mutual Fund Top Picks",
+      "SIF", "Retirement Planning", "Childrens Fund", "Category Performance",
+      "Benchmark", "Glossary", "Disclaimer", "Sheet2",
+    ]);
+
+    interface FundRecord {
+      category: string;
+      fundCode: string | number | null;
+      schemeName: string | null;
+      isin: string | null;
+      nav: number | null;
+      schemeType: string | null;
+      inceptionDate: string | null;
+      ageYears: number | null;
+      aumCr: number | null;
+      expenseRatio: number | null;
+      metrics: Record<string, number>;
+    }
+
+    function parseSheet(rows: any[][], category: string): FundRecord[] {
+      if (rows.length < 7) return [];
+      const groupRow = rows[4] || [];
+      const labelRow = rows[5] || [];
+
+      let lastGroup: string | null = null;
+      const colMeta: Record<number, string> = {};
+      for (let col = 0; col < Math.max(groupRow.length, labelRow.length); col++) {
+        const g = groupRow[col];
+        if (g !== undefined && g !== null && g !== "") lastGroup = String(g).trim();
+        const label = labelRow[col];
+        if (label !== undefined && label !== null && label !== "" && lastGroup) {
+          colMeta[col] = `${lastGroup}:${String(label).trim()}`;
+        }
+      }
+
+      const funds: FundRecord[] = [];
+      for (let r = 6; r < rows.length; r++) {
+        const row = rows[r];
+        if (!row || row[1] === undefined || row[1] === null || row[1] === "") continue;
+        const record: FundRecord = {
+          category,
+          fundCode: row[0] ?? null,
+          schemeName: row[1] ?? null,
+          isin: row[2] ?? null,
+          nav: row[3] ?? null,
+          schemeType: row[4] ?? null,
+          inceptionDate: row[5] ?? null,
+          ageYears: row[6] ?? null,
+          aumCr: row[7] ?? null,
+          expenseRatio: row[8] ?? null,
+          metrics: {},
+        };
+        for (const [colStr, key] of Object.entries(colMeta)) {
+          const col = Number(colStr);
+          if (col < 9) continue;
+          const val = row[col];
+          if (val !== undefined && val !== null && val !== "") {
+            record.metrics[key] = val;
+          }
+        }
+        funds.push(record);
+      }
+      return funds;
+    }
+
+    let parsedFunds: FundRecord[] = [];
+
+    document.getElementById("file-input")?.addEventListener("change", async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array", cellDates: false });
+
+      parsedFunds = [];
+      const summary: Record<string, number> = {};
+
+      for (const sheetName of wb.SheetNames) {
+        if (SKIP_SHEETS.has(sheetName.trim())) continue;
+        const ws = wb.Sheets[sheetName];
+        const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+        const funds = parseSheet(rows, sheetName.trim());
+        if (funds.length) {
+          parsedFunds.push(...funds);
+          summary[sheetName.trim()] = funds.length;
+        }
+      }
+
+      const preview = document.getElementById("preview")!;
+      preview.classList.remove("hidden");
+      document.getElementById("preview-summary")!.textContent =
+        `${parsedFunds.length} fund records found across ${Object.keys(summary).length} categories.`;
+      const tableEl = document.getElementById("preview-table")!;
+      tableEl.innerHTML = Object.entries(summary)
+        .map(([cat, count]) => `<div>${cat}: ${count}</div>`)
+        .join("");
+    });
+
+    document.getElementById("confirm-upload")?.addEventListener("click", async () => {
+      const status = document.getElementById("upload-status")!;
+      const btn = document.getElementById("confirm-upload") as HTMLButtonElement;
+      btn.disabled = true;
+      status.textContent = `Saving ${parsedFunds.length} records...`;
+
+      try {
+        // Firestore batches are capped at 500 writes each.
+        const CHUNK = 450;
+        for (let i = 0; i < parsedFunds.length; i += CHUNK) {
+          const batch = writeBatch(db);
+          const chunk = parsedFunds.slice(i, i + CHUNK);
+          for (const fund of chunk) {
+            const id = fund.isin || `${fund.category}-${fund.schemeName}`.slice(0, 120);
+            const ref = doc(collection(db, "mutualFunds"), id);
+            batch.set(ref, fund);
+          }
+          await batch.commit();
+          status.textContent = `Saved ${Math.min(i + CHUNK, parsedFunds.length)} / ${parsedFunds.length}...`;
+        }
+
+        await setDoc(doc(db, "settings", "mutualFundsDataStatus"), {
+          lastUpdated: serverTimestamp(),
+          recordCount: parsedFunds.length,
+        });
+
+        status.textContent = "Done — this week's data is live.";
+        status.className = "text-sm text-gain mt-4";
+      } catch (err) {
+        console.error(err);
+        status.textContent = "Something went wrong partway through — check the browser console and try again.";
+        status.className = "text-sm text-loss mt-4";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</Layout>

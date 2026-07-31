@@ -1,0 +1,48 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Admin Login">
+  <section class="max-w-sm mx-auto px-6 py-24">
+    <h1 class="font-display text-3xl text-indigo mb-8">Admin login</h1>
+
+    <form id="login-form" class="grid gap-4">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Email</span>
+        <input required name="email" type="email" class="border border-line rounded-lg px-4 py-2 focus:border-indigo outline-none" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Password</span>
+        <input required name="password" type="password" class="border border-line rounded-lg px-4 py-2 focus:border-indigo outline-none" />
+      </label>
+      <button type="submit" class="bg-indigo text-paper px-6 py-3 rounded-full font-medium hover:bg-indigoLight transition-colors">
+        Log in
+      </button>
+      <p id="login-status" class="text-sm text-loss"></p>
+    </form>
+  </section>
+
+  <script>
+    import { auth } from "../../lib/firebase";
+    import { signInWithEmailAndPassword } from "firebase/auth";
+
+    const form = document.getElementById("login-form") as HTMLFormElement;
+    const status = document.getElementById("login-status")!;
+
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+      status.textContent = "";
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          data.get("email") as string,
+          data.get("password") as string
+        );
+        window.location.href = "/admin/upload";
+      } catch (err) {
+        status.textContent = "Login failed — check your email and password.";
+      }
+    });
+  </script>
+</Layout>

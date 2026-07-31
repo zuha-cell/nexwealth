@@ -24,12 +24,20 @@ nexwealth/
   package.json
   firestore.rules              starter security rules for your collections
   README.md
+  scripts/
+    convert_weekly_data.py     reference script — proves the parsing logic (not required to run)
   public/
     favicon.svg
   src/
     layouts/Layout.astro       shared header/nav/footer
     pages/
       index.astro              homepage
+      about.astro               licenses, referral link, contact options
+      contact.astro             lead capture form -> Firestore `leads`
+      resources.astro           partner links (Sharekhan, Turtlemint)
+      admin/
+        index.astro              admin login
+        upload.astro             weekly data upload (parses xlsx in-browser)
       calculators/
         index.astro            list of all planned calculators
         sip.astro               working example — copy this pattern
@@ -41,6 +49,15 @@ nexwealth/
 > so macOS Finder and some unzip tools hide them by default. They ARE in the
 > zip. On Mac, press `Cmd+Shift+.` in Finder to reveal them, or just use the
 > terminal (`ls -a`) to confirm.
+
+## Setting up your admin login
+
+1. Firebase Console → your project → **Authentication** → **Users** tab → **Add user**.
+2. Enter your email and a password — this is your admin login, separate from your Firebase account login.
+3. Go to `yoursite.com/admin` and log in with those credentials.
+4. From there, `/admin/upload` lets you drop in the weekly "MF & ETFs Ready Reckoner" .xlsx — it parses it in your browser, shows a preview count, and on confirmation saves every fund into the `mutualFunds` Firestore collection for the comparison calculators to read.
+
+There's currently no per-role permission system — anyone with this login is a full admin. Don't share the password.
 
 ## Adding a new calculator
 
