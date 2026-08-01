@@ -1,0 +1,42 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+// From the blueprint's "Calculators (Planned)" list.
+// Add a `href` once a calculator is built — see sip.astro as the reference pattern.
+const calculators = [
+  { name: "SIP", href: "/calculators/sip" },
+  { name: "Savings & Investment (Budget Rules)", href: "/calculators/savings-investment" },
+  { name: "Browse Mutual Funds", href: "/calculators/funds" },
+  { name: "Lump Sum" }, { name: "CAGR" }, { name: "XIRR" },
+  { name: "SWP" }, { name: "STP" }, { name: "Savings vs Inflation" },
+  { name: "FD/RD" }, { name: "PPF" }, { name: "NPS" },
+  { name: "Retirement" }, { name: "FIRE" }, { name: "Emergency Fund" },
+  { name: "Goal Planning" }, { name: "Position Sizing" }, { name: "Risk/Reward" },
+  { name: "Brokerage" }, { name: "EMI" }, { name: "Asset Allocation" },
+  { name: "Mutual Fund Comparison" }, { name: "ETF Comparison" },
+  { name: "Savings Account Comparison" }, { name: "FD Comparison" },
+  { name: "Gold Comparison" }, { name: "Tax Calculator" },
+];
+---
+
+<Layout title="Calculators">
+  <section class="max-w-5xl mx-auto px-6 py-16">
+    <h1 class="font-display text-4xl text-indigo mb-3">Calculators</h1>
+    <p class="text-ink/65 mb-10">Twenty-four calculators are planned. One is live so far — the rest follow the same pattern.</p>
+    <div class="grid sm:grid-cols-3 gap-4">
+      {calculators.map((c) => (
+        c.href ? (
+          <a href={c.href} class="border border-line rounded-xl p-5 hover:border-indigo transition-colors">
+            <p class="font-medium text-indigo">{c.name}</p>
+            <p class="text-xs text-gain mt-1">Live</p>
+          </a>
+        ) : (
+          <div class="border border-line rounded-xl p-5 opacity-50">
+            <p class="font-medium">{c.name}</p>
+            <p class="text-xs text-ink/40 mt-1">Coming soon</p>
+          </div>
+        )
+      ))}
+    </div>
+  </section>
+</Layout>

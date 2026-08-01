@@ -1,0 +1,56 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const resources = [
+  {
+    name: "Sharekhan Demat & Trading Account",
+    desc: "Open a demat/trading account to invest in stocks, mutual funds, and ETFs.",
+    href: "https://diy.sharekhan.com/app/Account/RegisterFOS?grpcd=13977&type=pb&grpid=14427&utm_empcode=PB13977USER&FormType=CDSL&CustomerType=FOS",
+    cta: "Open account",
+  },
+  {
+    name: "Turtlemint Insurance",
+    desc: "Compare and buy life, health, and general insurance policies through my advisor profile.",
+    href: "https://advisor.turtlemintinsurance.com/profile/MUH4331373/muhammed_zuhair_nalakath",
+    cta: "View advisor profile",
+  },
+];
+---
+
+<Layout title="Resources">
+  <section class="max-w-4xl mx-auto px-6 py-16">
+    <h1 class="font-display text-4xl text-indigo mb-3">Resources</h1>
+    <p class="text-ink/65 mb-10">Vetted partners for opening accounts and buying financial products. Links are updated centrally — always current.</p>
+    <div class="grid sm:grid-cols-2 gap-6 mb-12">
+      {resources.map((r) => (
+        <div class="border border-line rounded-2xl p-6 flex flex-col">
+          <h3 class="font-display text-lg text-indigo mb-2">{r.name}</h3>
+          <p class="text-sm text-ink/65 mb-5 flex-1">{r.desc}</p>
+          <a href={r.href} target="_blank" rel="noopener noreferrer"
+            class="self-start bg-indigo text-paper px-5 py-2 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors"
+          >
+            {r.cta}
+          </a>
+        </div>
+      ))}
+    </div>
+
+    <div class="border border-line rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-8">
+      <img src="/sharekhan-qr.jpg" alt="Scan to open a free Mirae Asset Sharekhan Demat account" class="w-48 h-auto rounded-lg border border-line" />
+      <div>
+        <h3 class="font-display text-lg text-indigo mb-2">Scan to get started</h3>
+        <p class="text-sm text-ink/65 mb-4">
+          Scan this QR code with your phone camera to open a free Mirae Asset
+          Sharekhan Demat account — the fastest way to start your share
+          market journey.
+        </p>
+        <a href="https://diy.sharekhan.com/app/Account/RegisterFOS?grpcd=13977&type=pb&grpid=14427&utm_empcode=PB13977USER&FormType=CDSL&CustomerType=FOS"
+          target="_blank" rel="noopener noreferrer"
+          class="text-sm font-medium text-indigo underline"
+        >
+          Or click here instead of scanning
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

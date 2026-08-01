@@ -1,0 +1,344 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Savings & Investment Calculator" description="Enter your salary, pick a budgeting rule, and see how much to invest — split across fund types if you like.">
+  <section class="max-w-4xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">Savings &amp; Investment Calculator</h1>
+    <p class="text-ink/65 mb-4">
+      Enter your monthly salary, pick a budgeting rule, then see how much to
+      invest and what it could grow to — using this week's real fund data.
+    </p>
+    <p id="data-status" class="text-xs text-ink/45 mb-10">Loading fund data...</p>
+
+    <!-- Salary -->
+    <label class="grid gap-2 mb-10">
+      <span class="text-sm font-medium">Monthly take-home salary (₹)</span>
+      <input id="salary" type="number" value="50000" min="0" step="500"
+        class="border border-line rounded-lg px-4 py-3 text-lg font-mono focus:border-indigo outline-none max-w-xs" />
+    </label>
+
+    <!-- Rule cards -->
+    <h2 class="font-display text-xl text-indigo mb-4">1. Choose a budgeting rule</h2>
+    <div class="grid md:grid-cols-3 gap-6 mb-12">
+      <div id="rule-502030" class="border border-line rounded-2xl p-6"></div>
+      <div id="rule-701010" class="border border-line rounded-2xl p-6"></div>
+      <div id="rule-702010" class="border border-line rounded-2xl p-6"></div>
+    </div>
+
+    <!-- Allocation -->
+    <h2 class="font-display text-xl text-indigo mb-1">2. Where should the investable amount go?</h2>
+    <p class="text-sm text-ink/55 mb-4">Using <strong id="active-rule-label">50/30/20</strong> — investable amount:
+      <strong id="investable-amount" class="font-mono text-indigo"></strong> / month
+    </p>
+
+    <div class="flex gap-3 mb-6">
+      <button id="mode-single" class="px-4 py-2 rounded-full text-sm font-medium border border-line">Single fund type</button>
+      <button id="mode-diversify" class="px-4 py-2 rounded-full text-sm font-medium border border-line">Diversify</button>
+    </div>
+
+    <div id="single-panel" class="mb-8">
+      <select id="single-category" class="border border-line rounded-lg px-4 py-2 text-sm bg-white mb-4">
+        <option value="equity">Equity (Large/Mid/Flexi/Multi/Small Cap avg)</option>
+        <option value="hybrid">Hybrid (Aggressive/Balanced/Conservative avg)</option>
+        <option value="etf">ETF</option>
+        <option value="liquid">Liquid Funds</option>
+      </select>
+      <div id="single-top-funds" class="text-sm border border-line rounded-xl divide-y divide-line"></div>
+    </div>
+
+    <div id="diversify-panel" class="hidden mb-8 space-y-3"></div>
+
+    <!-- Period -->
+    <h2 class="font-display text-xl text-indigo mb-4">3. Time period</h2>
+    <label class="grid gap-2 mb-2 max-w-md">
+      <span class="text-sm font-medium">Investing for <span id="months-label" class="font-mono text-indigo"></span></span>
+      <input id="months" type="range" min="6" max="360" step="6" value="120" class="w-full" />
+    </label>
+
+    <!-- Results -->
+    <div class="border border-line rounded-2xl p-8 my-10 grid sm:grid-cols-3 gap-4">
+      <div>
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Invested</p>
+        <p id="result-invested" class="font-mono text-xl text-indigo">₹0</p>
+      </div>
+      <div>
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Est. returns</p>
+        <p id="result-returns" class="font-mono text-xl text-gain">₹0</p>
+      </div>
+      <div class="bg-indigo rounded-xl p-4 -m-4">
+        <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Est. total corpus</p>
+        <p id="result-total" class="font-mono text-xl text-paper">₹0</p>
+      </div>
+    </div>
+
+    <!-- Comparison -->
+    <h2 class="font-display text-xl text-indigo mb-4">Side-by-side: which rule builds more?</h2>
+    <div class="border border-line rounded-2xl overflow-hidden mb-6">
+      <table class="w-full text-sm">
+        <thead class="bg-indigo/5 text-left">
+          <tr><th class="px-4 py-3">Rule</th><th class="px-4 py-3 text-right">Invests / month</th><th class="px-4 py-3 text-right">Projected corpus</th></tr>
+        </thead>
+        <tbody id="comparison-rows"></tbody>
+      </table>
+    </div>
+    <p class="text-xs text-ink/45">
+      Estimates use each fund category's actual trailing 3-year CAGR from this
+      week's uploaded data, assumed constant going forward — real returns
+      vary and are not guaranteed. This is educational, not personalized
+      investment advice.
+    </p>
+  </section>
+
+  <script>
+    import { getAllFunds, averageReturn, topFundsByReturn, fundReturn, type FundRecord } from "../../lib/fundData";
+
+    // ---------- Rule definitions ----------
+    type Bucket = { key: string; label: string; percent: number; investable?: boolean };
+    const rules: Record<string, { title: string; buckets: Bucket[] }> = {
+      "502030": {
+        title: "50/30/20 Rule",
+        buckets: [
+          { key: "needs", label: "Needs", percent: 50 },
+          { key: "wants", label: "Wants", percent: 30 },
+          { key: "savings", label: "Savings & Investments", percent: 20, investable: true },
+        ],
+      },
+      "701010": {
+        title: "70-10-10-10 Rule",
+        buckets: [
+          { key: "living", label: "Living Expenses", percent: 70 },
+          { key: "longterm", label: "Long-term Investments", percent: 10, investable: true },
+          { key: "shortterm", label: "Short-term Savings", percent: 10, investable: true },
+          { key: "debt", label: "Debt / Personal Growth", percent: 10 },
+        ],
+      },
+      "702010": {
+        title: "70/20/10 Rule",
+        buckets: [
+          { key: "living", label: "Living Expenses", percent: 70 },
+          { key: "savings", label: "Savings & Investments", percent: 20, investable: true },
+          { key: "debtgiving", label: "Debt / Giving", percent: 10 },
+        ],
+      },
+    };
+    let activeRuleKey = "502030";
+
+    function investablePercent(ruleKey: string) {
+      return rules[ruleKey].buckets.filter((b) => b.investable).reduce((s, b) => s + b.percent, 0);
+    }
+
+    function renderRuleCard(ruleKey: string) {
+      const rule = rules[ruleKey];
+      const container = document.getElementById(`rule-${ruleKey}`)!;
+      const total = rule.buckets.reduce((s, b) => s + b.percent, 0);
+      container.innerHTML = `
+        <h3 class="font-display text-lg text-indigo mb-1">${rule.title}</h3>
+        <p class="text-xs mb-4 ${total === 100 ? "text-gain" : "text-loss"}">Total: ${total}% ${total === 100 ? "" : "(adjust to sum to 100)"}</p>
+        <div class="space-y-4">
+          ${rule.buckets
+            .map(
+              (b, i) => `
+            <div>
+              <div class="flex justify-between text-sm mb-1">
+                <span>${b.label}${b.investable ? " <span class='text-gold'>(invested)</span>" : ""}</span>
+                <span class="font-mono">${b.percent}%</span>
+              </div>
+              <input type="range" min="0" max="100" value="${b.percent}"
+                data-rule="${ruleKey}" data-idx="${i}" class="bucket-slider w-full" />
+            </div>`
+            )
+            .join("")}
+        </div>
+        <button class="use-rule-btn mt-5 text-sm font-medium text-indigo underline" data-rule="${ruleKey}">
+          Use this rule for the calculator ↓
+        </button>
+      `;
+    }
+
+    function attachRuleListeners() {
+      document.querySelectorAll<HTMLInputElement>(".bucket-slider").forEach((el) => {
+        el.addEventListener("input", () => {
+          const ruleKey = el.dataset.rule!;
+          const idx = Number(el.dataset.idx);
+          rules[ruleKey].buckets[idx].percent = Number(el.value);
+          renderRuleCard(ruleKey);
+          attachRuleListeners();
+          if (ruleKey === activeRuleKey) updateAll();
+        });
+      });
+      document.querySelectorAll<HTMLButtonElement>(".use-rule-btn").forEach((el) => {
+        el.addEventListener("click", () => {
+          activeRuleKey = el.dataset.rule!;
+          document.getElementById("active-rule-label")!.textContent = rules[activeRuleKey].title;
+          updateAll();
+        });
+      });
+    }
+
+    // ---------- Fund data ----------
+    let allFunds: FundRecord[] = [];
+    const BROAD_MAP: Record<string, string[]> = {
+      equity: ["Large Cap", "Mid Cap", "Large & Mid Cap", "Multi Cap", "Flexi Cap", "Small Cap"],
+      hybrid: ["Aggressive Hybrid", "Balanced Hybrid", "Conservative Hybrid"],
+      etf: ["ETF"],
+      liquid: ["Liquid Funds - Growth"],
+    };
+
+    function categoryAvgReturn(cats: string[]): number {
+      return averageReturn(allFunds, cats) ?? 8; // 8% fallback if no data uploaded yet
+    }
+
+    function topFunds(cats: string[], n = 5) {
+      return topFundsByReturn(allFunds, cats, n);
+    }
+
+    // ---------- SIP future value ----------
+    function sipFutureValue(monthly: number, annualRatePct: number, months: number) {
+      const i = annualRatePct / 100 / 12;
+      if (i === 0) return monthly * months;
+      return monthly * ((Math.pow(1 + i, months) - 1) / i) * (1 + i);
+    }
+
+    // ---------- Allocation state ----------
+    let mode: "single" | "diversify" = "single";
+    let diversifyAlloc: Record<string, number> = { equity: 40, hybrid: 20, etf: 20, liquid: 20 };
+
+    function renderSingleTopFunds() {
+      const key = (document.getElementById("single-category") as HTMLSelectElement).value;
+      const funds = topFunds(BROAD_MAP[key]);
+      document.getElementById("single-top-funds")!.innerHTML =
+        funds
+          .map(
+            (f) => `<div class="px-4 py-2 flex justify-between">
+          <span>${f.schemeName}</span>
+          <span class="font-mono text-gain">${fundReturn(f)?.toFixed(2)}%</span>
+        </div>`
+          )
+          .join("") || `<div class="px-4 py-3 text-ink/40">No fund data uploaded yet for this type.</div>`;
+    }
+
+    function renderDiversifyPanel() {
+      const panel = document.getElementById("diversify-panel")!;
+      const labels: Record<string, string> = { equity: "Equity", hybrid: "Hybrid", etf: "ETF", liquid: "Liquid" };
+      const total = Object.values(diversifyAlloc).reduce((a, b) => a + b, 0);
+      panel.innerHTML = `
+        <p class="text-xs mb-2 ${total === 100 ? "text-gain" : "text-loss"}">Total: ${total}% ${total === 100 ? "" : "(adjust to sum to 100)"}</p>
+        ${Object.keys(diversifyAlloc)
+          .map(
+            (key) => `
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span>${labels[key]} <span class="text-ink/40">(avg ${categoryAvgReturn(BROAD_MAP[key]).toFixed(1)}% CAGR)</span></span>
+              <span class="font-mono">${diversifyAlloc[key]}%</span>
+            </div>
+            <input type="range" min="0" max="100" value="${diversifyAlloc[key]}" data-key="${key}" class="diversify-slider w-full" />
+          </div>`
+          )
+          .join("")}
+      `;
+      panel.querySelectorAll<HTMLInputElement>(".diversify-slider").forEach((el) => {
+        el.addEventListener("input", () => {
+          diversifyAlloc[el.dataset.key!] = Number(el.value);
+          renderDiversifyPanel();
+          updateAll();
+        });
+      });
+    }
+
+    // ---------- Main compute ----------
+    function computeCorpus(ruleKey: string, months: number): { invested: number; returns: number; total: number } {
+      const salary = Number((document.getElementById("salary") as HTMLInputElement).value) || 0;
+      const investable = salary * (investablePercent(ruleKey) / 100);
+
+      let total = 0;
+      if (mode === "single") {
+        const key = (document.getElementById("single-category") as HTMLSelectElement).value;
+        const rate = categoryAvgReturn(BROAD_MAP[key]);
+        total = sipFutureValue(investable, rate, months);
+      } else {
+        const totalPct = Object.values(diversifyAlloc).reduce((a, b) => a + b, 0) || 1;
+        for (const [key, pct] of Object.entries(diversifyAlloc)) {
+          const portion = investable * (pct / totalPct);
+          const rate = categoryAvgReturn(BROAD_MAP[key]);
+          total += sipFutureValue(portion, rate, months);
+        }
+      }
+      const invested = investable * months;
+      return { invested, returns: total - invested, total };
+    }
+
+    function fmtINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+
+    function updateAll() {
+      const salary = Number((document.getElementById("salary") as HTMLInputElement).value) || 0;
+      const months = Number((document.getElementById("months") as HTMLInputElement).value);
+      document.getElementById("months-label")!.textContent =
+        months < 12 ? `${months} months` : `${(months / 12).toFixed(1)} years`;
+
+      const investable = salary * (investablePercent(activeRuleKey) / 100);
+      document.getElementById("investable-amount")!.textContent = fmtINR(investable);
+
+      const result = computeCorpus(activeRuleKey, months);
+      document.getElementById("result-invested")!.textContent = fmtINR(result.invested);
+      document.getElementById("result-returns")!.textContent = fmtINR(result.returns);
+      document.getElementById("result-total")!.textContent = fmtINR(result.total);
+
+      // Comparison table — both rules, same allocation choice, same period
+      const rows = Object.keys(rules)
+        .map((rk) => {
+          const inv = salary * (investablePercent(rk) / 100);
+          const r = computeCorpus(rk, months);
+          return `<tr class="border-t border-line ${rk === activeRuleKey ? "bg-gold/10" : ""}">
+            <td class="px-4 py-2">${rules[rk].title}</td>
+            <td class="px-4 py-2 text-right font-mono">${fmtINR(inv)}</td>
+            <td class="px-4 py-2 text-right font-mono">${fmtINR(r.total)}</td>
+          </tr>`;
+        })
+        .join("");
+      document.getElementById("comparison-rows")!.innerHTML = rows;
+    }
+
+    function setMode(newMode: "single" | "diversify") {
+      mode = newMode;
+      document.getElementById("single-panel")!.classList.toggle("hidden", mode !== "single");
+      document.getElementById("diversify-panel")!.classList.toggle("hidden", mode !== "diversify");
+      document.getElementById("mode-single")!.classList.toggle("bg-indigo", mode === "single");
+      document.getElementById("mode-single")!.classList.toggle("text-paper", mode === "single");
+      document.getElementById("mode-diversify")!.classList.toggle("bg-indigo", mode === "diversify");
+      document.getElementById("mode-diversify")!.classList.toggle("text-paper", mode === "diversify");
+      updateAll();
+    }
+
+    async function init() {
+      allFunds = await getAllFunds();
+      document.getElementById("data-status")!.textContent = allFunds.length
+        ? `Using ${allFunds.length} funds from this week's uploaded data.`
+        : "No fund data uploaded yet — estimates use an 8% fallback until you upload via /admin/upload.";
+
+      renderRuleCard("502030");
+      renderRuleCard("701010");
+      renderRuleCard("702010");
+      attachRuleListeners();
+      renderSingleTopFunds();
+      renderDiversifyPanel();
+      setMode("single");
+
+      document.getElementById("salary")?.addEventListener("input", updateAll);
+      document.getElementById("months")?.addEventListener("input", updateAll);
+      document.getElementById("single-category")?.addEventListener("change", () => {
+        renderSingleTopFunds();
+        updateAll();
+      });
+      document.getElementById("mode-single")?.addEventListener("click", () => setMode("single"));
+      document.getElementById("mode-diversify")?.addEventListener("click", () => setMode("diversify"));
+
+      updateAll();
+    }
+
+    init();
+  </script>
+</Layout>
