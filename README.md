@@ -22,27 +22,35 @@ nexwealth/
   astro.config.mjs
   tailwind.config.cjs
   package.json
-  firestore.rules              starter security rules for your collections
+  firestore.rules              Firestore security rules — publish this in Firebase Console
   README.md
   scripts/
-    convert_weekly_data.py     reference script — proves the parsing logic (not required to run)
+    convert_weekly_data.py     reference script — proves the xlsx parsing logic (not required to run)
   public/
     favicon.svg
+    sharekhan-qr.jpg            QR code shown on /resources
+    .assetsignore                required by Cloudflare's asset deploy step
   src/
-    layouts/Layout.astro       shared header/nav/footer
+    layouts/
+      Layout.astro               shared header/nav/footer, includes the newsletter widget
+    components/
+      NewsletterSignup.astro     email opt-in widget, shown in the footer on every page
     pages/
-      index.astro              homepage
-      about.astro               licenses, referral link, contact options
-      contact.astro             lead capture form -> Firestore `leads`
-      resources.astro           partner links (Sharekhan, Turtlemint)
+      index.astro                homepage
+      about.astro                 licenses, certificates summary, referral links, contact CTA
+      contact.astro                lead capture form -> Firestore `leads`
+      resources.astro              partner links (Sharekhan account + QR, Turtlemint advisor profile)
       admin/
-        index.astro              admin login
-        upload.astro             weekly data upload (parses xlsx in-browser)
+        index.astro                 admin login (email/password + forgot-password)
+        upload.astro                 weekly MF/ETF data upload — parses xlsx in-browser, writes to `mutualFunds`
+        subscribers.astro            view + CSV-export `subscribers` and `leads`
       calculators/
-        index.astro            list of all planned calculators
-        sip.astro               working example — copy this pattern
-    lib/firebase.ts             Firebase client init (reads .env)
-    styles/global.css           Tailwind + brand fonts
+        index.astro                list of all planned calculators
+        sip.astro                    working example — copy this pattern
+    lib/
+      firebase.ts                 Firebase client init (reads .env)
+    styles/
+      global.css                  Tailwind + brand fonts
 ```
 
 > **Note on hidden files:** `.env.example` and `.gitignore` start with a dot,
@@ -50,14 +58,31 @@ nexwealth/
 > zip. On Mac, press `Cmd+Shift+.` in Finder to reveal them, or just use the
 > terminal (`ls -a`) to confirm.
 
+## Firebase setup (one-time)
+
+1. **Firestore Database** → Create database → pick a Mumbai region (`asia-south1` or `asia-south2`) → **Production mode**.
+2. Firestore Database → **Rules** tab → paste in `firestore.rules` from this repo → **Publish**.
+3. **Authentication** → Get started → enable **Email/Password** sign-in method.
+4. Authentication → **Users** tab → **Add user** → use a real email you can access (needed for password reset later) → this becomes your admin login.
+5. **Storage** → Get started → same Mumbai region (not actively used yet, but needed later for uploaded images/PDFs).
+6. Project settings → General → Your apps → Web app → copy the config values into `.env` (locally) and into Cloudflare Pages → Settings → Environment variables (for the live site).
+
 ## Setting up your admin login
 
-1. Firebase Console → your project → **Authentication** → **Users** tab → **Add user**.
-2. Enter your email and a password — this is your admin login, separate from your Firebase account login.
-3. Go to `yoursite.com/admin` and log in with those credentials.
-4. From there, `/admin/upload` lets you drop in the weekly "MF & ETFs Ready Reckoner" .xlsx — it parses it in your browser, shows a preview count, and on confirmation saves every fund into the `mutualFunds` Firestore collection for the comparison calculators to read.
+1. Go to `yoursite.com/admin` and log in with the email/password from step 4 above.
+2. `/admin/upload` — drop in the weekly "MF & ETFs Ready Reckoner" .xlsx. It parses in your browser, shows a preview count per category, and on confirmation saves every fund into the `mutualFunds` Firestore collection.
+3. `/admin/subscribers` — view newsletter subscribers and contact-form leads, and download either as CSV (for importing into an email tool like Brevo/Mailchimp).
+4. Forgot your password? Use the "Forgot password?" link on `/admin` (needs a real email on the account), or reset it directly in Firebase Console → Authentication → Users → your admin user → Reset password.
 
 There's currently no per-role permission system — anyone with this login is a full admin. Don't share the password.
+
+## Marketing / promotional emails
+
+The newsletter widget (footer, every page) collects opt-in emails into `subscribers`.
+Sending is currently manual: export the CSV from `/admin/subscribers` and
+import it into a free-tier email tool (Brevo, Mailchimp) to send campaigns
+and posters. WhatsApp broadcast isn't wired up — it requires Meta's WhatsApp
+Business API and approval, which is a separate, later project.
 
 ## Adding a new calculator
 
