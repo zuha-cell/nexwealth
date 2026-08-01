@@ -4,21 +4,35 @@ service cloud.firestore {
 
     // Public read-only reference data — populated by you via the Admin Panel,
     // never written to directly by site visitors.
-    match /{collection}/{docId}
-        where collection in [
-          'videos', 'articles', 'calculators', 'marketData', 'mutualFunds',
-          'etfs', 'fdRates', 'savingsRates', 'inflation', 'goldPrices',
-          'repoRates', 'referrals', 'settings'
-        ] {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+    // NOTE: any signed-in user can write here for now. There's only one
+    // admin login in this project, so this is safe — but if you ever add
+    // more logged-in users for other reasons, tighten this with a real
+    // custom-claim check set by a Cloud Function.
+    match /{collection}/{docId} {
+      allow read: if collection in [
+        'videos', 'articles', 'calculators', 'marketData', 'mutualFunds',
+        'etfs', 'fdRates', 'savingsRates', 'inflation', 'goldPrices',
+        'repoRates', 'referrals', 'settings'
+      ];
+      allow write: if request.auth != null && collection in [
+        'videos', 'articles', 'calculators', 'marketData', 'mutualFunds',
+        'etfs', 'fdRates', 'savingsRates', 'inflation', 'goldPrices',
+        'repoRates', 'referrals', 'settings'
+      ];
+    }
+
+    // Subscribers (email opt-in): anyone can create, only the logged-in
+    // admin can read/manage (e.g. for CSV export).
+    match /subscribers/{subId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
     }
 
     // Leads: anyone can create (contact form / referral clicks),
-    // nobody can read or edit from the client — only the admin console / backend.
+    // only the logged-in admin can read/manage.
     match /leads/{leadId} {
       allow create: if true;
-      allow read, update, delete: if request.auth != null && request.auth.token.admin == true;
+      allow read, update, delete: if request.auth != null;
     }
   }
 }

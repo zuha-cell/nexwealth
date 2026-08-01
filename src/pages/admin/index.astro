@@ -18,13 +18,16 @@ import Layout from "../../layouts/Layout.astro";
       <button type="submit" class="bg-indigo text-paper px-6 py-3 rounded-full font-medium hover:bg-indigoLight transition-colors">
         Log in
       </button>
+      <button type="button" id="forgot-password" class="text-sm text-indigo underline text-left">
+        Forgot password?
+      </button>
       <p id="login-status" class="text-sm text-loss"></p>
     </form>
   </section>
 
   <script>
     import { auth } from "../../lib/firebase";
-    import { signInWithEmailAndPassword } from "firebase/auth";
+    import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 
     const form = document.getElementById("login-form") as HTMLFormElement;
     const status = document.getElementById("login-status")!;
@@ -42,6 +45,23 @@ import Layout from "../../layouts/Layout.astro";
         window.location.href = "/admin/upload";
       } catch (err) {
         status.textContent = "Login failed — check your email and password.";
+      }
+    });
+
+    document.getElementById("forgot-password")?.addEventListener("click", async () => {
+      const emailInput = form.querySelector("input[name=email]") as HTMLInputElement;
+      const email = emailInput.value.trim();
+      if (!email) {
+        status.textContent = "Type your admin email above first, then click Forgot password.";
+        return;
+      }
+      try {
+        await sendPasswordResetEmail(auth, email);
+        status.textContent = "Reset email sent — check that inbox.";
+        status.className = "text-sm text-gain";
+      } catch (err) {
+        status.textContent = "Couldn't send reset email — check the address is correct.";
+        status.className = "text-sm text-loss";
       }
     });
   </script>
