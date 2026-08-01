@@ -3,7 +3,7 @@
 // re-querying Firestore independently.
 
 import { db } from "./firebase";
-import { collection, getDocs, query, limit } from "firebase/firestore";
+import { collection, getDocs, query, limit, doc, getDoc } from "firebase/firestore";
 
 export interface FundRecord {
   category: string;
@@ -85,11 +85,19 @@ export async function getFundsProgressive(
     // fall through to a fresh fetch
   }
 
-  // Quick first batch — 50 records, so the page has something to show
-  // almost instantly instead of a blank loading state for several seconds.
+  // Curated sample first — spans every category, built at upload time
+  // (see /admin/upload). Much more representative than an arbitrary batch.
   try {
-    const firstSnap = await getDocs(query(collection(db, "mutualFunds"), limit(50)));
-    onFirstBatch(firstSnap.docs.map((d) => d.data() as FundRecord));
+    const sampleSnap = await getDoc(doc(db, "settings", "fundSampleQuick"));
+    if (sampleSnap.exists()) {
+      const sample = (sampleSnap.data().funds ?? []) as FundRecord[];
+      if (sample.length) onFirstBatch(sample);
+    } else {
+      // No sample yet (e.g. data uploaded before this feature existed) —
+      // fall back to a quick arbitrary batch so there's still something fast.
+      const firstSnap = await getDocs(query(collection(db, "mutualFunds"), limit(50)));
+      onFirstBatch(firstSnap.docs.map((d) => d.data() as FundRecord));
+    }
   } catch {
     // if this fails, the full fetch below will still run and report the real state
   }

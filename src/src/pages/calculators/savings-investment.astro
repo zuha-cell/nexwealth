@@ -12,19 +12,25 @@ import Layout from "../../layouts/Layout.astro";
     </p>
     <p id="data-status" class="text-xs text-ink/45 mb-10">Loading fund data...</p>
 
-    <!-- Salary -->
-    <label class="grid gap-2 mb-10">
-      <span class="text-sm font-medium">Monthly take-home salary (₹)</span>
-      <input id="salary" type="number" value="50000" min="0" step="500"
-        class="border border-line rounded-lg px-4 py-3 text-lg font-mono focus:border-indigo outline-none max-w-xs" />
-    </label>
+    <div class="grid sm:grid-cols-2 gap-6 mb-10 items-start">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Monthly take-home salary (₹)</span>
+        <input id="salary" type="number" value="50000" min="0" step="500"
+          class="border border-line rounded-lg px-4 py-3 text-lg font-mono focus:border-indigo outline-none" />
+      </label>
 
-    <label class="grid gap-2 mb-2 max-w-xs">
-      <span class="text-sm font-medium">Your age (optional — for a mix suggestion)</span>
-      <input id="age" type="number" min="18" max="80" step="1" placeholder="e.g. 30"
-        class="border border-line rounded-lg px-4 py-3 text-lg font-mono focus:border-indigo outline-none" />
-    </label>
-    <p id="age-suggestion" class="text-sm text-ink/60 mb-10"></p>
+      <!-- Small side calculator: equity allocation by age rule of thumb -->
+      <div class="border border-line rounded-2xl p-5 bg-indigo/5">
+        <p class="text-sm font-medium mb-2">Quick check: how much equity for your age?</p>
+        <input id="age" type="number" min="18" max="80" step="1" placeholder="Enter your age"
+          class="border border-line rounded-lg px-4 py-2 w-full font-mono focus:border-indigo outline-none mb-3" />
+        <div id="age-rule-results" class="text-sm text-ink/60 hidden">
+          <div class="flex justify-between py-1"><span>100 − age rule</span><span id="age-rule-100" class="font-mono text-indigo"></span></div>
+          <div class="flex justify-between py-1"><span>120 − age rule</span><span id="age-rule-120" class="font-mono text-indigo"></span></div>
+        </div>
+        <p id="age-suggestion" class="text-xs text-ink/60 mt-2"></p>
+      </div>
+    </div>
 
     <!-- Rule cards -->
     <h2 class="font-display text-xl text-indigo mb-4">1. Choose a budgeting rule</h2>
@@ -130,6 +136,33 @@ import Layout from "../../layouts/Layout.astro";
     };
     let activeRuleKey = "502030";
 
+    // Proportionally redistributes the remaining percentage across the other
+    // entries whenever one is changed, so the group always sums to 100 —
+    // like a self-balancing pie, not independent sliders that can drift.
+    function rebalance(entries: { key: string; percent: number }[], changedKey: string, newValue: number) {
+      newValue = Math.max(0, Math.min(100, Math.round(newValue)));
+      const changed = entries.find((e) => e.key === changedKey)!;
+      changed.percent = newValue;
+
+      const others = entries.filter((e) => e.key !== changedKey);
+      const remaining = 100 - newValue;
+      const othersSum = others.reduce((s, e) => s + e.percent, 0);
+
+      if (others.length === 0) return;
+      if (othersSum <= 0) {
+        const share = remaining / others.length;
+        others.forEach((e) => (e.percent = share));
+      } else {
+        others.forEach((e) => (e.percent = (e.percent / othersSum) * remaining));
+      }
+
+      others.forEach((e) => (e.percent = Math.round(e.percent)));
+      const drift = 100 - entries.reduce((s, e) => s + e.percent, 0);
+      if (drift !== 0 && others.length) {
+        others[others.length - 1].percent += drift;
+      }
+    }
+
     function investablePercent(ruleKey: string) {
       return rules[ruleKey].buckets.filter((b) => b.investable).reduce((s, b) => s + b.percent, 0);
     }
@@ -137,10 +170,9 @@ import Layout from "../../layouts/Layout.astro";
     function renderRuleCard(ruleKey: string) {
       const rule = rules[ruleKey];
       const container = document.getElementById(`rule-${ruleKey}`)!;
-      const total = rule.buckets.reduce((s, b) => s + b.percent, 0);
       container.innerHTML = `
         <h3 class="font-display text-lg text-indigo mb-1">${rule.title}</h3>
-        <p class="text-xs mb-4 ${total === 100 ? "text-gain" : "text-loss"}">Total: ${total}% ${total === 100 ? "" : "(adjust to sum to 100)"}</p>
+        <p id="rule-total-${ruleKey}" class="text-xs mb-4 text-gain">Total: 100% — auto-balances</p>
         <div class="space-y-4">
           ${rule.buckets
             .map(
@@ -148,9 +180,10 @@ import Layout from "../../layouts/Layout.astro";
             <div>
               <div class="flex justify-between text-sm mb-1">
                 <span>${b.label}${b.investable ? " <span class='text-gold'>(invested)</span>" : ""}</span>
-                <span class="font-mono">${b.percent}%</span>
+                <span id="bucket-pct-${ruleKey}-${i}" class="font-mono">${b.percent}%</span>
               </div>
               <input type="range" min="0" max="100" value="${b.percent}"
+                id="bucket-slider-${ruleKey}-${i}"
                 data-rule="${ruleKey}" data-idx="${i}" class="bucket-slider w-full" />
             </div>`
             )
@@ -162,14 +195,26 @@ import Layout from "../../layouts/Layout.astro";
       `;
     }
 
+    // Updates slider positions and percent labels in place — no DOM rebuild,
+    // so this is safe to call on every drag tick without breaking the drag.
+    function updateRuleCardValues(ruleKey: string) {
+      const rule = rules[ruleKey];
+      rule.buckets.forEach((b, i) => {
+        const slider = document.getElementById(`bucket-slider-${ruleKey}-${i}`) as HTMLInputElement | null;
+        const label = document.getElementById(`bucket-pct-${ruleKey}-${i}`);
+        if (slider && document.activeElement !== slider) slider.value = String(b.percent);
+        if (label) label.textContent = `${b.percent}%`;
+      });
+    }
+
     function attachRuleListeners() {
       document.querySelectorAll<HTMLInputElement>(".bucket-slider").forEach((el) => {
         el.addEventListener("input", () => {
           const ruleKey = el.dataset.rule!;
           const idx = Number(el.dataset.idx);
-          rules[ruleKey].buckets[idx].percent = Number(el.value);
-          renderRuleCard(ruleKey);
-          attachRuleListeners();
+          const bucket = rules[ruleKey].buckets[idx];
+          rebalance(rules[ruleKey].buckets, bucket.key, Number(el.value));
+          updateRuleCardValues(ruleKey);
           if (ruleKey === activeRuleKey) updateAll();
         });
       });
@@ -284,30 +329,43 @@ import Layout from "../../layouts/Layout.astro";
 
     function renderDiversifyPanel() {
       const panel = document.getElementById("diversify-panel")!;
-      const total = Object.values(diversifyAlloc).reduce((a, b) => a + b, 0);
       panel.innerHTML = `
-        <p class="text-xs mb-2 ${total === 100 ? "text-gain" : "text-loss"}">Total: ${total}% ${total === 100 ? "" : "(adjust to sum to 100)"}</p>
+        <p id="diversify-total" class="text-xs mb-2 text-gain">Total: 100% — auto-balances</p>
         ${Object.keys(diversifyAlloc)
           .map(
             (key) => `
           <div>
             <div class="flex justify-between text-sm mb-1">
               <span>${ASSET_LABELS[key]} <span class="text-ink/40">(avg ${categoryAvgReturn(BROAD_MAP[key]).toFixed(1)}% CAGR)</span></span>
-              <span class="font-mono">${diversifyAlloc[key]}%</span>
+              <span id="diversify-pct-${key}" class="font-mono">${diversifyAlloc[key]}%</span>
             </div>
-            <input type="range" min="0" max="100" value="${diversifyAlloc[key]}" data-key="${key}" class="diversify-slider w-full" />
+            <input type="range" min="0" max="100" value="${diversifyAlloc[key]}"
+              id="diversify-slider-${key}" data-key="${key}" class="diversify-slider w-full" />
           </div>`
           )
           .join("")}
       `;
       panel.querySelectorAll<HTMLInputElement>(".diversify-slider").forEach((el) => {
         el.addEventListener("input", () => {
-          diversifyAlloc[el.dataset.key!] = Number(el.value);
+          const entries = Object.entries(diversifyAlloc).map(([key, percent]) => ({ key, percent }));
+          rebalance(entries, el.dataset.key!, Number(el.value));
+          entries.forEach((e) => (diversifyAlloc[e.key] = e.percent));
           activePreset = "custom"; // manual tweak breaks from the named preset
           renderPresetButtons();
-          renderDiversifyPanel();
+          updateDiversifyValues();
           updateAll();
         });
+      });
+    }
+
+    // Lightweight — updates slider positions/labels without rebuilding the
+    // DOM, so this is safe on every drag tick.
+    function updateDiversifyValues() {
+      Object.entries(diversifyAlloc).forEach(([key, percent]) => {
+        const slider = document.getElementById(`diversify-slider-${key}`) as HTMLInputElement | null;
+        const label = document.getElementById(`diversify-pct-${key}`);
+        if (slider && document.activeElement !== slider) slider.value = String(percent);
+        if (label) label.textContent = `${percent}%`;
       });
     }
 
@@ -387,14 +445,22 @@ import Layout from "../../layouts/Layout.astro";
 
     function updateAgeSuggestion() {
       const ageInput = document.getElementById("age") as HTMLInputElement;
+      const resultsBox = document.getElementById("age-rule-results")!;
       const el = document.getElementById("age-suggestion")!;
       const age = Number(ageInput.value);
       if (!age) {
+        resultsBox.classList.add("hidden");
         el.textContent = "";
         return;
       }
+      const rule100 = Math.max(0, Math.min(100, 100 - age));
+      const rule120 = Math.max(0, Math.min(100, 120 - age));
+      document.getElementById("age-rule-100")!.textContent = `${rule100}% equity`;
+      document.getElementById("age-rule-120")!.textContent = `${rule120}% equity`;
+      resultsBox.classList.remove("hidden");
+
       const suggested = ageToPreset(age);
-      el.innerHTML = `Based on the "100 minus your age" rule of thumb, the <strong>${PRESET_LABELS[suggested]}</strong> mix roughly fits — <button type="button" id="apply-age-preset" class="text-indigo underline">apply it</button> (switches to Diversify mode).`;
+      el.innerHTML = `The <strong>${PRESET_LABELS[suggested]}</strong> mix below roughly matches this — <button type="button" id="apply-age-preset" class="text-indigo underline">apply it</button>.`;
       document.getElementById("apply-age-preset")?.addEventListener("click", () => {
         activePreset = suggested;
         diversifyAlloc = { ...PRESETS[suggested] };

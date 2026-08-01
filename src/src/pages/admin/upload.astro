@@ -168,6 +168,29 @@ import Layout from "../../layouts/Layout.astro";
       status.textContent = `Saving ${parsedFunds.length} records...`;
 
       try {
+        // Build a small, curated sample spanning every category — this is
+        // what powers the "instant" first paint on calculator pages, so it
+        // needs to represent every sector, not just whichever funds happen
+        // to be first in upload order.
+        status.textContent = "Preparing quick-preview sample...";
+        const byCategory: Record<string, FundRecord[]> = {};
+        for (const fund of parsedFunds) {
+          (byCategory[fund.category] ??= []).push(fund);
+        }
+        const quickSample: FundRecord[] = [];
+        for (const cat of Object.keys(byCategory)) {
+          const sorted = [...byCategory[cat]].sort(
+            (a, b) => (b.metrics["CAGR:3 Yr"] ?? -Infinity) - (a.metrics["CAGR:3 Yr"] ?? -Infinity)
+          );
+          quickSample.push(...sorted.slice(0, 3)); // top 3 per category
+        }
+        await setDoc(doc(db, "settings", "fundSampleQuick"), {
+          funds: quickSample,
+          updatedAt: serverTimestamp(),
+        });
+
+        status.textContent = `Saving ${parsedFunds.length} records...`;
+
         // Firestore batches are capped at 500 writes each.
         const CHUNK = 450;
         for (let i = 0; i < parsedFunds.length; i += CHUNK) {
