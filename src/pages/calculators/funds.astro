@@ -1,0 +1,107 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Browse Mutual Funds" description="See the fund data currently loaded on the site, filterable by category.">
+  <section class="max-w-6xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Data</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">Browse funds</h1>
+    <p class="text-ink/65 mb-8" id="data-status">Loading...</p>
+
+    <div class="flex flex-wrap gap-3 mb-6">
+      <select id="category-filter" class="border border-line rounded-lg px-4 py-2 text-sm bg-white">
+        <option value="">All categories</option>
+      </select>
+      <select id="sort-by" class="border border-line rounded-lg px-4 py-2 text-sm bg-white">
+        <option value="CAGR:3 Yr">Sort by 3Yr CAGR</option>
+        <option value="CAGR:5 Yr">Sort by 5Yr CAGR</option>
+        <option value="SIP Returns:3 Yr">Sort by 3Yr SIP Returns</option>
+        <option value="aumCr">Sort by AUM</option>
+      </select>
+    </div>
+
+    <div class="border border-line rounded-2xl overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-indigo/5 text-left">
+          <tr>
+            <th class="px-4 py-3">Scheme</th>
+            <th class="px-4 py-3">Category</th>
+            <th class="px-4 py-3 text-right">NAV</th>
+            <th class="px-4 py-3 text-right">Expense %</th>
+            <th class="px-4 py-3 text-right">3Yr CAGR</th>
+            <th class="px-4 py-3 text-right">5Yr CAGR</th>
+            <th class="px-4 py-3 text-right">3Yr SIP Ret.</th>
+          </tr>
+        </thead>
+        <tbody id="fund-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script>
+    import { db } from "../../lib/firebase";
+    import { collection, getDocs } from "firebase/firestore";
+
+    let allFunds: any[] = [];
+
+    function fmt(n: any) {
+      if (n === undefined || n === null || n === "") return "—";
+      const num = Number(n);
+      return isNaN(num) ? "—" : num.toFixed(2);
+    }
+
+    function render() {
+      const category = (document.getElementById("category-filter") as HTMLSelectElement).value;
+      const sortKey = (document.getElementById("sort-by") as HTMLSelectElement).value;
+
+      let rows = category ? allFunds.filter((f) => f.category === category) : [...allFunds];
+      rows.sort((a, b) => {
+        const av = sortKey === "aumCr" ? Number(a.aumCr) : Number(a.metrics?.[sortKey]);
+        const bv = sortKey === "aumCr" ? Number(b.aumCr) : Number(b.metrics?.[sortKey]);
+        return (isNaN(bv) ? -Infinity : bv) - (isNaN(av) ? -Infinity : av);
+      });
+      rows = rows.slice(0, 100); // keep the table light
+
+      document.getElementById("fund-rows")!.innerHTML = rows
+        .map(
+          (f) => `
+        <tr class="border-t border-line">
+          <td class="px-4 py-2">${f.schemeName ?? "—"}</td>
+          <td class="px-4 py-2 text-ink/60">${f.category ?? "—"}</td>
+          <td class="px-4 py-2 text-right font-mono">${fmt(f.nav)}</td>
+          <td class="px-4 py-2 text-right font-mono">${fmt(f.expenseRatio)}</td>
+          <td class="px-4 py-2 text-right font-mono">${fmt(f.metrics?.["CAGR:3 Yr"])}%</td>
+          <td class="px-4 py-2 text-right font-mono">${fmt(f.metrics?.["CAGR:5 Yr"])}%</td>
+          <td class="px-4 py-2 text-right font-mono">${fmt(f.metrics?.["SIP Returns:3 Yr"])}%</td>
+        </tr>`
+        )
+        .join("");
+    }
+
+    async function load() {
+      const snap = await getDocs(collection(db, "mutualFunds"));
+      allFunds = snap.docs.map((d) => d.data());
+
+      const statusEl = document.getElementById("data-status")!;
+      if (allFunds.length === 0) {
+        statusEl.textContent = "No fund data uploaded yet — go to /admin/upload to add this week's data.";
+        return;
+      }
+      statusEl.textContent = `${allFunds.length} funds loaded. Showing top 100 by your selected sort.`;
+
+      const categories = Array.from(new Set(allFunds.map((f) => f.category))).sort();
+      const catSelect = document.getElementById("category-filter") as HTMLSelectElement;
+      for (const cat of categories) {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        catSelect.appendChild(opt);
+      }
+      render();
+    }
+
+    document.getElementById("category-filter")?.addEventListener("change", render);
+    document.getElementById("sort-by")?.addEventListener("change", render);
+    load();
+  </script>
+</Layout>
