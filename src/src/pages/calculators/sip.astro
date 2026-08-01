@@ -74,7 +74,7 @@ import Layout from "../../layouts/Layout.astro";
   </section>
 
   <script>
-    import { getAllFunds, getCategories, fundsInCategory, fundReturn, type FundRecord } from "../../lib/fundData";
+    import { getFundsProgressive, getCategories, fundsInCategory, fundReturn, type FundRecord } from "../../lib/fundData";
 
     let allFunds: FundRecord[] = [];
     let mode: "custom" | "fund" = "custom";
@@ -170,14 +170,26 @@ import Layout from "../../layouts/Layout.astro";
     }
 
     async function init() {
-      allFunds = await getAllFunds();
       const statusEl = document.getElementById("data-status")!;
-      statusEl.textContent = allFunds.length
-        ? `${allFunds.length} funds available to pick from.`
-        : "No fund data uploaded yet — /admin/upload to add this week's data. Custom rate still works fine.";
 
-      populateCategorySelect();
-      populateFundSelect();
+      getFundsProgressive(
+        (firstBatch) => {
+          allFunds = firstBatch;
+          statusEl.textContent = allFunds.length
+            ? `${allFunds.length} funds available so far — loading the rest...`
+            : "No fund data uploaded yet — /admin/upload to add this week's data. Custom rate still works fine.";
+          populateCategorySelect();
+          populateFundSelect();
+        },
+        (fullData) => {
+          allFunds = fullData;
+          statusEl.textContent = allFunds.length
+            ? `${allFunds.length} funds available to pick from.`
+            : "No fund data uploaded yet — /admin/upload to add this week's data. Custom rate still works fine.";
+          populateCategorySelect();
+          populateFundSelect();
+        }
+      );
 
       document.getElementById("category-select")?.addEventListener("change", populateFundSelect);
       document.getElementById("fund-select")?.addEventListener("change", applySelectedFund);

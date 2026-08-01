@@ -19,6 +19,13 @@ import Layout from "../../layouts/Layout.astro";
         class="border border-line rounded-lg px-4 py-3 text-lg font-mono focus:border-indigo outline-none max-w-xs" />
     </label>
 
+    <label class="grid gap-2 mb-2 max-w-xs">
+      <span class="text-sm font-medium">Your age (optional — for a mix suggestion)</span>
+      <input id="age" type="number" min="18" max="80" step="1" placeholder="e.g. 30"
+        class="border border-line rounded-lg px-4 py-3 text-lg font-mono focus:border-indigo outline-none" />
+    </label>
+    <p id="age-suggestion" class="text-sm text-ink/60 mb-10"></p>
+
     <!-- Rule cards -->
     <h2 class="font-display text-xl text-indigo mb-4">1. Choose a budgeting rule</h2>
     <div class="grid md:grid-cols-3 gap-6 mb-12">
@@ -39,16 +46,14 @@ import Layout from "../../layouts/Layout.astro";
     </div>
 
     <div id="single-panel" class="mb-8">
-      <select id="single-category" class="border border-line rounded-lg px-4 py-2 text-sm bg-white mb-4">
-        <option value="equity">Equity (Large/Mid/Flexi/Multi/Small Cap avg)</option>
-        <option value="hybrid">Hybrid (Aggressive/Balanced/Conservative avg)</option>
-        <option value="etf">ETF</option>
-        <option value="liquid">Liquid Funds</option>
-      </select>
+      <select id="single-category" class="border border-line rounded-lg px-4 py-2 text-sm bg-white mb-4"></select>
       <div id="single-top-funds" class="text-sm border border-line rounded-xl divide-y divide-line"></div>
     </div>
 
-    <div id="diversify-panel" class="hidden mb-8 space-y-3"></div>
+    <div id="diversify-panel-wrapper" class="hidden mb-8">
+      <div class="flex flex-wrap gap-2 mb-5" id="preset-buttons"></div>
+      <div id="diversify-panel" class="space-y-3"></div>
+    </div>
 
     <!-- Period -->
     <h2 class="font-display text-xl text-indigo mb-4">3. Time period</h2>
@@ -92,7 +97,7 @@ import Layout from "../../layouts/Layout.astro";
   </section>
 
   <script>
-    import { getAllFunds, averageReturn, topFundsByReturn, fundReturn, type FundRecord } from "../../lib/fundData";
+    import { getFundsProgressive, averageReturn, topFundsByReturn, fundReturn, type FundRecord } from "../../lib/fundData";
 
     // ---------- Rule definitions ----------
     type Bucket = { key: string; label: string; percent: number; investable?: boolean };
@@ -180,10 +185,46 @@ import Layout from "../../layouts/Layout.astro";
     // ---------- Fund data ----------
     let allFunds: FundRecord[] = [];
     const BROAD_MAP: Record<string, string[]> = {
-      equity: ["Large Cap", "Mid Cap", "Large & Mid Cap", "Multi Cap", "Flexi Cap", "Small Cap"],
-      hybrid: ["Aggressive Hybrid", "Balanced Hybrid", "Conservative Hybrid"],
-      etf: ["ETF"],
       liquid: ["Liquid Funds - Growth"],
+      debt: ["Ultra Short Duration", "Low Duration", "Short Duration", "Medium Duration", "Corporate Bond", "Banking & PSU", "Dynamic Bond"],
+      hybrid: ["Aggressive Hybrid", "Balanced Hybrid", "Conservative Hybrid"],
+      balancedAdvantage: ["Dynamic Asst Allocation&Bal Adv"],
+      multiAsset: ["Multi Asset Alloaction"],
+      index: ["Equity - Index"],
+      largeCap: ["Large Cap"],
+      flexiCap: ["Flexi Cap"],
+      multiCap: ["Multi Cap"],
+      midCap: ["Mid Cap"],
+      smallCap: ["Small Cap"],
+      elss: ["ELSS"],
+      etf: ["ETF"],
+      // No separate Gold/International/US category in the weekly data —
+      // Fund of Funds is the closest available proxy (often includes
+      // international/gold fund-of-funds). Flagged in the UI as approximate.
+      goldIntl: ["Fund of Funds"],
+    };
+
+    const ASSET_LABELS: Record<string, string> = {
+      liquid: "Liquid", debt: "Debt", hybrid: "Hybrid", balancedAdvantage: "Balanced Advantage",
+      multiAsset: "Multi Asset", index: "Index", largeCap: "Large Cap", flexiCap: "Flexi Cap",
+      multiCap: "Multi Cap", midCap: "Mid Cap", smallCap: "Small Cap", elss: "ELSS",
+      etf: "ETF", goldIntl: "Gold / International (approx.)",
+    };
+
+    // Preset mixes from the Complete Mutual Fund Guide for Beginners.
+    const PRESETS: Record<string, Record<string, number>> = {
+      conservative: { liquid: 20, debt: 40, hybrid: 20, index: 20 },
+      balanced: { debt: 20, index: 40, flexiCap: 20, midCap: 10, goldIntl: 10 },
+      growth: { index: 40, flexiCap: 25, midCap: 20, smallCap: 10, goldIntl: 5 },
+      aggressive: { index: 35, flexiCap: 25, midCap: 20, smallCap: 10, goldIntl: 10 },
+      globalDiversified: { index: 50, goldIntl: 40, multiAsset: 10 },
+      retirement: { index: 60, debt: 30, goldIntl: 10 },
+      custom: { index: 40, hybrid: 20, etf: 20, liquid: 20 },
+    };
+    const PRESET_LABELS: Record<string, string> = {
+      conservative: "Conservative", balanced: "Balanced", growth: "Growth",
+      aggressive: "Aggressive", globalDiversified: "Global Diversified",
+      retirement: "Retirement", custom: "Custom",
     };
 
     function categoryAvgReturn(cats: string[]): number {
@@ -203,7 +244,8 @@ import Layout from "../../layouts/Layout.astro";
 
     // ---------- Allocation state ----------
     let mode: "single" | "diversify" = "single";
-    let diversifyAlloc: Record<string, number> = { equity: 40, hybrid: 20, etf: 20, liquid: 20 };
+    let activePreset = "custom";
+    let diversifyAlloc: Record<string, number> = { ...PRESETS.custom };
 
     function renderSingleTopFunds() {
       const key = (document.getElementById("single-category") as HTMLSelectElement).value;
@@ -219,9 +261,29 @@ import Layout from "../../layouts/Layout.astro";
           .join("") || `<div class="px-4 py-3 text-ink/40">No fund data uploaded yet for this type.</div>`;
     }
 
+    function renderPresetButtons() {
+      const wrap = document.getElementById("preset-buttons")!;
+      wrap.innerHTML = Object.keys(PRESETS)
+        .map(
+          (key) => `<button type="button" data-preset="${key}"
+            class="preset-btn px-4 py-2 rounded-full text-sm font-medium border ${
+              key === activePreset ? "bg-indigo text-paper border-indigo" : "border-line"
+            }">${PRESET_LABELS[key]}</button>`
+        )
+        .join("");
+      wrap.querySelectorAll<HTMLButtonElement>(".preset-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          activePreset = btn.dataset.preset!;
+          diversifyAlloc = { ...PRESETS[activePreset] };
+          renderPresetButtons();
+          renderDiversifyPanel();
+          updateAll();
+        });
+      });
+    }
+
     function renderDiversifyPanel() {
       const panel = document.getElementById("diversify-panel")!;
-      const labels: Record<string, string> = { equity: "Equity", hybrid: "Hybrid", etf: "ETF", liquid: "Liquid" };
       const total = Object.values(diversifyAlloc).reduce((a, b) => a + b, 0);
       panel.innerHTML = `
         <p class="text-xs mb-2 ${total === 100 ? "text-gain" : "text-loss"}">Total: ${total}% ${total === 100 ? "" : "(adjust to sum to 100)"}</p>
@@ -230,7 +292,7 @@ import Layout from "../../layouts/Layout.astro";
             (key) => `
           <div>
             <div class="flex justify-between text-sm mb-1">
-              <span>${labels[key]} <span class="text-ink/40">(avg ${categoryAvgReturn(BROAD_MAP[key]).toFixed(1)}% CAGR)</span></span>
+              <span>${ASSET_LABELS[key]} <span class="text-ink/40">(avg ${categoryAvgReturn(BROAD_MAP[key]).toFixed(1)}% CAGR)</span></span>
               <span class="font-mono">${diversifyAlloc[key]}%</span>
             </div>
             <input type="range" min="0" max="100" value="${diversifyAlloc[key]}" data-key="${key}" class="diversify-slider w-full" />
@@ -241,6 +303,8 @@ import Layout from "../../layouts/Layout.astro";
       panel.querySelectorAll<HTMLInputElement>(".diversify-slider").forEach((el) => {
         el.addEventListener("input", () => {
           diversifyAlloc[el.dataset.key!] = Number(el.value);
+          activePreset = "custom"; // manual tweak breaks from the named preset
+          renderPresetButtons();
           renderDiversifyPanel();
           updateAll();
         });
@@ -305,7 +369,7 @@ import Layout from "../../layouts/Layout.astro";
     function setMode(newMode: "single" | "diversify") {
       mode = newMode;
       document.getElementById("single-panel")!.classList.toggle("hidden", mode !== "single");
-      document.getElementById("diversify-panel")!.classList.toggle("hidden", mode !== "diversify");
+      document.getElementById("diversify-panel-wrapper")!.classList.toggle("hidden", mode !== "diversify");
       document.getElementById("mode-single")!.classList.toggle("bg-indigo", mode === "single");
       document.getElementById("mode-single")!.classList.toggle("text-paper", mode === "single");
       document.getElementById("mode-diversify")!.classList.toggle("bg-indigo", mode === "diversify");
@@ -313,21 +377,77 @@ import Layout from "../../layouts/Layout.astro";
       updateAll();
     }
 
-    async function init() {
-      allFunds = await getAllFunds();
-      document.getElementById("data-status")!.textContent = allFunds.length
-        ? `Using ${allFunds.length} funds from this week's uploaded data.`
-        : "No fund data uploaded yet — estimates use an 8% fallback until you upload via /admin/upload.";
+    function ageToPreset(age: number): string {
+      // Rough application of the "100/120 minus age" rule of thumb.
+      if (age < 30) return "aggressive";
+      if (age < 40) return "growth";
+      if (age < 55) return "balanced";
+      return "retirement";
+    }
 
+    function updateAgeSuggestion() {
+      const ageInput = document.getElementById("age") as HTMLInputElement;
+      const el = document.getElementById("age-suggestion")!;
+      const age = Number(ageInput.value);
+      if (!age) {
+        el.textContent = "";
+        return;
+      }
+      const suggested = ageToPreset(age);
+      el.innerHTML = `Based on the "100 minus your age" rule of thumb, the <strong>${PRESET_LABELS[suggested]}</strong> mix roughly fits — <button type="button" id="apply-age-preset" class="text-indigo underline">apply it</button> (switches to Diversify mode).`;
+      document.getElementById("apply-age-preset")?.addEventListener("click", () => {
+        activePreset = suggested;
+        diversifyAlloc = { ...PRESETS[suggested] };
+        setMode("diversify");
+        renderPresetButtons();
+        renderDiversifyPanel();
+        updateAll();
+      });
+    }
+
+    async function init() {
       renderRuleCard("502030");
       renderRuleCard("701010");
       renderRuleCard("702010");
       attachRuleListeners();
-      renderSingleTopFunds();
-      renderDiversifyPanel();
+
+      const singleSelect = document.getElementById("single-category") as HTMLSelectElement;
+      singleSelect.innerHTML = Object.entries(ASSET_LABELS)
+        .map(([key, label]) => `<option value="${key}">${label}</option>`)
+        .join("");
+
+      const statusEl = document.getElementById("data-status")!;
+      function refreshFundDependentUI(label: string) {
+        statusEl.textContent = label;
+        renderSingleTopFunds();
+        renderPresetButtons();
+        renderDiversifyPanel();
+        updateAll();
+      }
+
+      getFundsProgressive(
+        (firstBatch) => {
+          allFunds = firstBatch;
+          refreshFundDependentUI(
+            allFunds.length
+              ? `Using ${allFunds.length} funds so far — loading the rest in the background...`
+              : "No fund data uploaded yet — estimates use an 8% fallback until you upload via /admin/upload."
+          );
+        },
+        (fullData) => {
+          allFunds = fullData;
+          refreshFundDependentUI(
+            allFunds.length
+              ? `Using ${allFunds.length} funds from this week's uploaded data.`
+              : "No fund data uploaded yet — estimates use an 8% fallback until you upload via /admin/upload."
+          );
+        }
+      );
+
       setMode("single");
 
       document.getElementById("salary")?.addEventListener("input", updateAll);
+      document.getElementById("age")?.addEventListener("input", updateAgeSuggestion);
       document.getElementById("months")?.addEventListener("input", updateAll);
       document.getElementById("single-category")?.addEventListener("change", () => {
         renderSingleTopFunds();

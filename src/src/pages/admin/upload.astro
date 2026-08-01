@@ -187,6 +187,12 @@ import Layout from "../../layouts/Layout.astro";
           recordCount: parsedFunds.length,
         });
 
+        // Clear the shared calculator cache so /calculators pages show this
+        // week's data right away instead of a stale cached copy.
+        try {
+          sessionStorage.removeItem("nw_fund_cache_v1");
+        } catch {}
+
         status.textContent = "Done — this week's data is live.";
         status.className = "text-sm text-gain mt-4";
       } catch (err) {

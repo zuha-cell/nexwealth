@@ -3,7 +3,7 @@
 // re-querying Firestore independently.
 
 import { db } from "./firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, limit } from "firebase/firestore";
 
 export interface FundRecord {
   category: string;
@@ -53,6 +53,49 @@ export async function getAllFunds(): Promise<FundRecord[]> {
 
   return funds;
 }
+
+/**
+ * Loads funds progressively: calls onFirstBatch quickly with ~50 records so
+ * the UI can render right away, then calls onComplete once the full dataset
+ * (all ~2,700+ records) has loaded in the background. If a fresh cache
+ * already exists, both callbacks fire immediately with the full data.
+ */
+export async function getFundsProgressive(
+  onFirstBatch: (funds: FundRecord[]) => void,
+  onComplete: (funds: FundRecord[]) => void
+): Promise<void> {
+  if (memoryCache) {
+    onFirstBatch(memoryCache);
+    onComplete(memoryCache);
+    return;
+  }
+
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Date.now() - parsed.fetchedAt < CACHE_TTL_MS) {
+        memoryCache = parsed.funds;
+        onFirstBatch(memoryCache!);
+        onComplete(memoryCache!);
+        return;
+      }
+    }
+  } catch {
+    // fall through to a fresh fetch
+  }
+
+  // Quick first batch — 50 records, so the page has something to show
+  // almost instantly instead of a blank loading state for several seconds.
+  try {
+    const firstSnap = await getDocs(query(collection(db, "mutualFunds"), limit(50)));
+    onFirstBatch(firstSnap.docs.map((d) => d.data() as FundRecord));
+  } catch {
+    // if this fails, the full fetch below will still run and report the real state
+  }
+
+  const full = await getAllFunds();
+  onComplete(full);
 
 export function getCategories(funds: FundRecord[]): string[] {
   return Array.from(new Set(funds.map((f) => f.category))).sort();

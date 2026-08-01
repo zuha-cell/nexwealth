@@ -39,7 +39,7 @@ import Layout from "../../layouts/Layout.astro";
   </section>
 
   <script>
-    import { getAllFunds, getCategories } from "../../lib/fundData";
+    import { getFundsProgressive, getCategories } from "../../lib/fundData";
 
     let allFunds: any[] = [];
 
@@ -77,25 +77,43 @@ import Layout from "../../layouts/Layout.astro";
         .join("");
     }
 
-    async function load() {
-      allFunds = await getAllFunds();
-
-      const statusEl = document.getElementById("data-status")!;
-      if (allFunds.length === 0) {
-        statusEl.textContent = "No fund data uploaded yet — go to /admin/upload to add this week's data.";
-        return;
-      }
-      statusEl.textContent = `${allFunds.length} funds loaded. Showing top 100 by your selected sort.`;
-
+    function populateCategoryOptions() {
       const categories = getCategories(allFunds);
       const catSelect = document.getElementById("category-filter") as HTMLSelectElement;
+      const current = catSelect.value;
+      catSelect.innerHTML = '<option value="">All categories</option>';
       for (const cat of categories) {
         const opt = document.createElement("option");
         opt.value = cat;
         opt.textContent = cat;
         catSelect.appendChild(opt);
       }
-      render();
+      catSelect.value = current;
+    }
+
+    function load() {
+      const statusEl = document.getElementById("data-status")!;
+
+      getFundsProgressive(
+        (firstBatch) => {
+          allFunds = firstBatch;
+          if (allFunds.length === 0) {
+            statusEl.textContent = "No fund data uploaded yet — go to /admin/upload to add this week's data.";
+            return;
+          }
+          statusEl.textContent = `Showing first ${allFunds.length} funds — loading the rest...`;
+          populateCategoryOptions();
+          render();
+        },
+        (fullData) => {
+          allFunds = fullData;
+          statusEl.textContent = allFunds.length
+            ? `${allFunds.length} funds loaded. Showing top 100 by your selected sort.`
+            : "No fund data uploaded yet — go to /admin/upload to add this week's data.";
+          populateCategoryOptions();
+          render();
+        }
+      );
     }
 
     document.getElementById("category-filter")?.addEventListener("change", render);
