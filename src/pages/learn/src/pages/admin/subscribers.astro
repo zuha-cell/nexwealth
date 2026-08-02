@@ -1,0 +1,117 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Admin — Subscribers & Leads">
+  <section class="max-w-4xl mx-auto px-6 py-16">
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="font-display text-3xl text-indigo">Subscribers &amp; leads</h1>
+      <a href="/admin/upload" class="text-sm text-indigo underline">Weekly data upload →</a>
+    </div>
+
+    <p id="auth-check" class="text-sm text-ink/50">Checking login...</p>
+
+    <div id="panel" class="hidden space-y-12">
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display text-xl text-indigo">Newsletter subscribers</h2>
+          <button id="export-subscribers" class="text-sm bg-indigo text-paper px-4 py-2 rounded-full hover:bg-indigoLight transition-colors">
+            Download CSV
+          </button>
+        </div>
+        <div id="subscribers-list" class="text-sm border border-line rounded-xl divide-y divide-line max-h-80 overflow-y-auto"></div>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display text-xl text-indigo">Contact form leads</h2>
+          <button id="export-leads" class="text-sm bg-indigo text-paper px-4 py-2 rounded-full hover:bg-indigoLight transition-colors">
+            Download CSV
+          </button>
+        </div>
+        <div id="leads-list" class="text-sm border border-line rounded-xl divide-y divide-line max-h-80 overflow-y-auto"></div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    import { auth, db } from "../../lib/firebase";
+    import { onAuthStateChanged } from "firebase/auth";
+    import { collection, getDocs, orderBy, query } from "firebase/firestore";
+
+    function toCSV(rows: Record<string, any>[]): string {
+      if (!rows.length) return "";
+      const headers = Object.keys(rows[0]);
+      const escape = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const lines = [headers.join(",")];
+      for (const row of rows) {
+        lines.push(headers.map((h) => escape(row[h])).join(","));
+      }
+      return lines.join("\n");
+    }
+
+    function downloadCSV(filename: string, rows: Record<string, any>[]) {
+      const csv = toCSV(rows);
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    let subscriberRows: Record<string, any>[] = [];
+    let leadRows: Record<string, any>[] = [];
+
+    async function loadData() {
+      const subsSnap = await getDocs(query(collection(db, "subscribers"), orderBy("createdAt", "desc")));
+      subscriberRows = subsSnap.docs.map((d) => {
+        const data = d.data();
+        return {
+          email: data.email,
+          consent: data.consent,
+          createdAt: data.createdAt?.toDate?.().toISOString() ?? "",
+          source: data.source,
+        };
+      });
+      document.getElementById("subscribers-list")!.innerHTML =
+        subscriberRows.map((r) => `<div class="px-4 py-2">${r.email}</div>`).join("") ||
+        `<div class="px-4 py-3 text-ink/40">No subscribers yet.</div>`;
+
+      const leadsSnap = await getDocs(query(collection(db, "leads"), orderBy("createdAt", "desc")));
+      leadRows = leadsSnap.docs.map((d) => {
+        const data = d.data();
+        return {
+          name: data.name,
+          contact: data.contact,
+          interest: data.interest,
+          message: data.message,
+          createdAt: data.createdAt?.toDate?.().toISOString() ?? "",
+        };
+      });
+      document.getElementById("leads-list")!.innerHTML =
+        leadRows.map((r) => `<div class="px-4 py-2">${r.name} — ${r.contact} — ${r.interest}</div>`).join("") ||
+        `<div class="px-4 py-3 text-ink/40">No leads yet.</div>`;
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      const authCheck = document.getElementById("auth-check")!;
+      const panel = document.getElementById("panel")!;
+      if (user) {
+        authCheck.classList.add("hidden");
+        panel.classList.remove("hidden");
+        loadData();
+      } else {
+        window.location.href = "/admin";
+      }
+    });
+
+    document.getElementById("export-subscribers")?.addEventListener("click", () => {
+      downloadCSV("subscribers.csv", subscriberRows);
+    });
+    document.getElementById("export-leads")?.addEventListener("click", () => {
+      downloadCSV("leads.csv", leadRows);
+    });
+  </script>
+</Layout>
