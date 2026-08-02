@@ -3,7 +3,7 @@
 Matches Phase 1 of the Master Blueprint: Astro + Tailwind frontend, Firebase
 backend, deployed to Cloudflare Pages. One calculator (SIP) is fully wired up
 as the reference pattern — copy `src/pages/calculators/sip.astro` to build
-the rest.
+the rest. 
 
 ## Run it locally
 
