@@ -105,6 +105,7 @@ export async function getFundsProgressive(
   const full = await getAllFunds();
   onComplete(full);
 }
+
 export function getCategories(funds: FundRecord[]): string[] {
   return Array.from(new Set(funds.map((f) => f.category))).sort();
 }
