@@ -1,0 +1,69 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const faqs = [
+  {
+    q: "Can I start investing with just ₹100?",
+    a: "Yes. Most mutual fund SIPs in India allow a minimum monthly investment of ₹100–₹500, depending on the fund. You don't need a large lump sum to begin — starting small and increasing your SIP amount as your income grows is a completely normal way to build a habit.",
+  },
+  {
+    q: "What's the difference between a demat account and a trading account?",
+    a: "A demat account holds your shares and securities electronically, like a locker. A trading account is what you use to place buy/sell orders on the exchange. You need both to trade stocks — they're usually opened together as a single application.",
+  },
+  {
+    q: "Is SIP investing safe?",
+    a: "SIPs reduce timing risk by spreading your investment across market ups and downs (called rupee-cost averaging), but the underlying mutual fund still carries market risk — its value can go up or down. \"Safe\" depends on the fund type: a liquid fund is low-risk, a small-cap equity fund is high-risk. There's no investment that's both high-return and risk-free.",
+  },
+  {
+    q: "How much return can I actually expect?",
+    a: "It depends entirely on what you invest in and for how long. Use the calculators on this site with real, current fund data instead of relying on a fixed percentage — past returns (shown in the Browse Funds and SIP calculator pages) are a reference point, not a promise of future performance.",
+  },
+  {
+    q: "What documents do I need to open an account?",
+    a: "PAN card, a residence proof (Passport/Driving License/Voter ID), your bank account details, and a signature. See the full checklist on the account opening guide page, linked below.",
+  },
+  {
+    q: "Is this site SEBI registered / is this legitimate advice?",
+    a: "This site provides educational content and calculators, not personalized investment advice. Account opening is done through Sharekhan (a registered stockbroker) and Turtlemint (an IRDAI-licensed insurance broker) — see the About page for registration and license details.",
+  },
+  {
+    q: "Can I withdraw my money anytime?",
+    a: "For open-ended mutual funds, generally yes — most have no lock-in and money is usually credited within 1–3 working days of a redemption request. ELSS funds have a mandatory 3-year lock-in for tax benefits. Exit loads (a small fee for redeeming too early, often within the first year) may apply — check the specific fund's terms.",
+  },
+  {
+    q: "What's the minimum age to invest?",
+    a: "You need to be 18 to open a demat/trading account or mutual fund folio in your own name. Minors can invest through a folio managed by a parent or guardian.",
+  },
+];
+---
+
+<Layout title="Frequently Asked Questions" description="Common questions about starting to invest, demat accounts, SIPs, and returns.">
+  <section class="max-w-3xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Getting started</p>
+    <h1 class="font-display text-4xl text-indigo mb-10">Frequently asked questions</h1>
+
+    <div class="space-y-4">
+      {faqs.map((item) => (
+        <details class="border border-line rounded-2xl p-5 group">
+          <summary class="font-medium text-indigo cursor-pointer list-none flex justify-between items-center">
+            {item.q}
+            <span class="text-ink/40 group-open:rotate-45 transition-transform text-xl">+</span>
+          </summary>
+          <p class="text-sm text-ink/70 mt-3 leading-relaxed">{item.a}</p>
+        </details>
+      ))}
+    </div>
+
+    <div class="border border-line rounded-2xl p-8 mt-12 bg-indigo/5">
+      <h2 class="font-display text-lg text-indigo mb-3">Still have a question?</h2>
+      <div class="flex flex-wrap gap-3">
+        <a href="/learn/open-account-guide" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors">
+          Document checklist for opening an account
+        </a>
+        <a href="/contact" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+          Ask directly
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

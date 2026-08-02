@@ -182,7 +182,7 @@ import Layout from "../../layouts/Layout.astro";
           const sorted = [...byCategory[cat]].sort(
             (a, b) => (b.metrics["CAGR:3 Yr"] ?? -Infinity) - (a.metrics["CAGR:3 Yr"] ?? -Infinity)
           );
-          quickSample.push(...sorted.slice(0, 3)); // top 3 per category
+          quickSample.push(...sorted.slice(0, 5)); // top 5 per category
         }
         await setDoc(doc(db, "settings", "fundSampleQuick"), {
           funds: quickSample,

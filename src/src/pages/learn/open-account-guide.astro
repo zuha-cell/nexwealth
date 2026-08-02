@@ -1,0 +1,83 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const coreDocs = [
+  { title: "PAN card", desc: "Required for every account — no exceptions." },
+  { title: "Proof of residence", desc: "Passport, Driving License, or Voter ID card." },
+  { title: "Savings account details", desc: "A cheque leaf with your name printed on it, a passbook with bank stamp, or the first page of a bank statement." },
+  { title: "Signature", desc: "Draw it on-screen if opening via smartphone, or upload a scanned signature." },
+];
+
+const fnoDocs = [
+  "Latest salary slip",
+  "Copy of Form 16 (for salaried individuals)",
+  "Bank statement for the last 6 months",
+  "Acknowledged copy of ITR",
+  "Net worth certificate, duly certified by a Chartered Accountant",
+];
+---
+
+<Layout title="Documents Needed to Start Trading & Investing" description="Everything you need ready before opening a demat and trading account.">
+  <section class="max-w-3xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Getting started</p>
+    <h1 class="font-display text-4xl text-indigo mb-6">Documents needed to start trading &amp; investing</h1>
+    <p class="text-ink/70 leading-relaxed mb-10">
+      Opening a demat and trading account takes a few minutes once you have
+      the right documents ready. Most of these can be fetched straight from
+      your DigiLocker account, or uploaded manually — here's exactly what
+      you'll need.
+    </p>
+
+    <h2 class="font-display text-2xl text-indigo mb-4">Core documents (required for everyone)</h2>
+    <div class="grid gap-4 mb-12">
+      {coreDocs.map((doc, i) => (
+        <div class="border border-line rounded-2xl p-5 flex gap-4">
+          <span class="font-display text-xl text-gold shrink-0">{i + 1}</span>
+          <div>
+            <h3 class="font-medium text-indigo mb-1">{doc.title}</h3>
+            <p class="text-sm text-ink/65">{doc.desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <h2 class="font-display text-2xl text-indigo mb-2">If you also want to trade Futures &amp; Options</h2>
+    <p class="text-sm text-ink/60 mb-4">Any one of the following, in addition to the core documents above:</p>
+    <ul class="border border-line rounded-2xl p-6 space-y-2 text-sm text-ink/70 mb-12">
+      {fnoDocs.map((d) => (
+        <li class="flex gap-3">
+          <span class="text-gain">✓</span>
+          <span>{d}</span>
+        </li>
+      ))}
+    </ul>
+
+    <div class="border border-line rounded-2xl p-8 bg-indigo/5">
+      <h2 class="font-display text-xl text-indigo mb-3">Have these ready? Let's open your account.</h2>
+      <p class="text-sm text-ink/70 mb-5">
+        Account opening is free, with no AMC charged on your demat account
+        for the first year. Scan the QR code or click below to start —
+        approval usually completes once your IPV and KYC checks are done.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <a
+          href="https://diy.sharekhan.com/app/Account/RegisterFOS?grpcd=13977&type=pb&grpid=14427&utm_empcode=PB13977USER&FormType=CDSL&CustomerType=FOS"
+          target="_blank" rel="noopener noreferrer"
+          class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors"
+        >
+          Open a Sharekhan account
+        </a>
+        <a href="/contact" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors">
+          Have questions first? Contact me
+        </a>
+      </div>
+      <p class="text-xs text-ink/40 mt-5">
+        Account opening charges are Nil. No AMC charged on the demat account
+        for the first year. All other charges apply as per agreed tariff
+        rates. The account is opened after IPV and client due diligence are
+        completed. Investments in securities markets are subject to market
+        risks — read all related documents carefully before investing.
+      </p>
+    </div>
+  </section>
+</Layout>

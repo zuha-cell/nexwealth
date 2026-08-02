@@ -8,16 +8,21 @@ import Layout from "../../layouts/Layout.astro";
     <h1 class="font-display text-4xl text-indigo mb-3">Browse funds</h1>
     <p class="text-ink/65 mb-8" id="data-status">Loading...</p>
 
-    <div class="flex flex-wrap gap-3 mb-6">
-      <select id="category-filter" class="border border-line rounded-lg px-4 py-2 text-sm bg-white">
-        <option value="">All categories</option>
-      </select>
-      <select id="sort-by" class="border border-line rounded-lg px-4 py-2 text-sm bg-white">
-        <option value="CAGR:3 Yr">Sort by 3Yr CAGR</option>
-        <option value="CAGR:5 Yr">Sort by 5Yr CAGR</option>
-        <option value="SIP Returns:3 Yr">Sort by 3Yr SIP Returns</option>
-        <option value="aumCr">Sort by AUM</option>
-      </select>
+    <div class="flex flex-wrap gap-3 mb-6 items-center justify-between">
+      <div class="flex flex-wrap gap-3">
+        <select id="category-filter" class="border border-line rounded-lg px-4 py-2 text-sm bg-white">
+          <option value="">All categories</option>
+        </select>
+        <select id="sort-by" class="border border-line rounded-lg px-4 py-2 text-sm bg-white">
+          <option value="CAGR:3 Yr">Sort by 3Yr CAGR</option>
+          <option value="CAGR:5 Yr">Sort by 5Yr CAGR</option>
+          <option value="SIP Returns:3 Yr">Sort by 3Yr SIP Returns</option>
+          <option value="aumCr">Sort by AUM</option>
+        </select>
+      </div>
+      <button id="download-report" class="text-sm bg-indigo text-paper px-4 py-2 rounded-full hover:bg-indigoLight transition-colors whitespace-nowrap">
+        Download full report (CSV)
+      </button>
     </div>
 
     <div class="border border-line rounded-2xl overflow-x-auto">
@@ -116,8 +121,30 @@ import Layout from "../../layouts/Layout.astro";
       );
     }
 
+    function downloadFullReport() {
+      if (!allFunds.length) return;
+      const headers = ["schemeName", "category", "isin", "nav", "expenseRatio", "aumCr", "CAGR:3 Yr", "CAGR:5 Yr", "SIP Returns:3 Yr"];
+      const escape = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const lines = [headers.join(",")];
+      for (const f of allFunds) {
+        const row = [
+          f.schemeName, f.category, f.isin, f.nav, f.expenseRatio, f.aumCr,
+          f.metrics?.["CAGR:3 Yr"], f.metrics?.["CAGR:5 Yr"], f.metrics?.["SIP Returns:3 Yr"],
+        ];
+        lines.push(row.map(escape).join(","));
+      }
+      const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `nexwealth-fund-report-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
     document.getElementById("category-filter")?.addEventListener("change", render);
     document.getElementById("sort-by")?.addEventListener("change", render);
+    document.getElementById("download-report")?.addEventListener("click", downloadFullReport);
     load();
   </script>
 </Layout>
