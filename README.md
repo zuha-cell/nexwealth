@@ -3,9 +3,9 @@
 Matches Phase 1 of the Master Blueprint: Astro + Tailwind frontend, Firebase
 backend, deployed to Cloudflare Pages. One calculator (SIP) is fully wired up
 as the reference pattern — copy `src/pages/calculators/sip.astro` to build
-the rest. 
+the rest.
 
-## Run it locally 
+## Run it locally
 
 ```bash
 npm install
@@ -46,9 +46,12 @@ nexwealth/
         subscribers.astro            view + CSV-export `subscribers` and `leads`
       calculators/
         index.astro                list of all planned calculators
-        sip.astro                    working example — copy this pattern
+        sip.astro                    SIP calculator — custom rate or pick a real fund/ETF for its actual return
+        savings-investment.astro     salary + budgeting rule + diversified portfolio presets, using real fund data
+        funds.astro                  browse all uploaded fund data
     lib/
       firebase.ts                 Firebase client init (reads .env)
+      fundData.ts                  shared fund data fetch/cache — every calculator imports from here
     styles/
       global.css                  Tailwind + brand fonts
 ```

@@ -1,0 +1,189 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Savings vs FD vs Mutual Fund" description="Compare what your money could grow to in a savings account, a fixed deposit, and a mutual fund.">
+  <section class="max-w-4xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">Savings vs FD vs Mutual Fund</h1>
+    <p class="text-ink/65 mb-4">
+      Put the same amount in each and see how the growth actually compares
+      over time — rates are editable, so use your bank's real numbers.
+    </p>
+    <p id="data-status" class="text-xs text-ink/45 mb-8">Loading fund data...</p>
+
+    <div class="grid sm:grid-cols-2 gap-6 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Amount to invest (₹)</span>
+        <input type="number" id="amount" value="100000" min="0" step="1000"
+          class="border border-line rounded-lg px-4 py-3 text-lg font-mono focus:border-indigo outline-none" />
+      </label>
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-sm font-medium">Time period</span>
+          <span id="years-label" class="font-mono text-sm text-indigo"></span>
+        </div>
+        <input type="range" id="years" min="1" max="30" step="1" value="10" class="w-full mt-4" />
+      </div>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-5 mb-10">
+      <!-- Savings account -->
+      <div class="border border-line rounded-2xl p-5">
+        <h3 class="font-medium text-indigo mb-3">Savings Account</h3>
+        <div class="flex items-center gap-1 mb-2">
+          <input type="number" id="savings-rate-input" value="3.5" min="0" max="20" step="0.1"
+            class="border border-line rounded px-2 py-1 font-mono text-sm w-16 text-right" />
+          <span class="text-xs text-ink/40">% p.a.</span>
+        </div>
+        <input type="range" id="savings-rate-slider" min="0" max="10" step="0.1" value="3.5" class="w-full mb-4" />
+        <p class="text-xs text-ink/50 mb-1">Grows to</p>
+        <p id="savings-result" class="font-mono text-lg text-indigo">₹0</p>
+      </div>
+
+      <!-- FD -->
+      <div class="border border-line rounded-2xl p-5">
+        <h3 class="font-medium text-indigo mb-3">Fixed Deposit</h3>
+        <div class="flex items-center gap-1 mb-2">
+          <input type="number" id="fd-rate-input" value="7" min="0" max="20" step="0.1"
+            class="border border-line rounded px-2 py-1 font-mono text-sm w-16 text-right" />
+          <span class="text-xs text-ink/40">% p.a.</span>
+        </div>
+        <input type="range" id="fd-rate-slider" min="0" max="15" step="0.1" value="7" class="w-full mb-4" />
+        <p class="text-xs text-ink/50 mb-1">Grows to</p>
+        <p id="fd-result" class="font-mono text-lg text-indigo">₹0</p>
+      </div>
+
+      <!-- Mutual fund -->
+      <div class="border border-line rounded-2xl p-5 bg-indigo/5">
+        <h3 class="font-medium text-indigo mb-3">Mutual Fund</h3>
+        <select id="mf-category" class="border border-line rounded-lg px-2 py-1.5 text-xs bg-white w-full mb-2"></select>
+        <div class="flex items-center gap-1 mb-2">
+          <input type="number" id="mf-rate-input" value="12" min="-20" max="40" step="0.1"
+            class="border border-line rounded px-2 py-1 font-mono text-sm w-16 text-right" />
+          <span class="text-xs text-ink/40">% avg 3Yr CAGR</span>
+        </div>
+        <input type="range" id="mf-rate-slider" min="-10" max="30" step="0.1" value="12" class="w-full mb-4" />
+        <p class="text-xs text-ink/50 mb-1">Grows to</p>
+        <p id="mf-result" class="font-mono text-lg text-indigo">₹0</p>
+      </div>
+    </div>
+
+    <div class="border border-line rounded-2xl p-6" id="verdict-box">
+      <p id="verdict-text" class="text-sm"></p>
+    </div>
+
+    <p class="mt-8 text-xs text-ink/45">
+      Savings and FD rates are fixed by the bank you choose — edit them to
+      match yours. Mutual fund figure uses this week's real average category
+      return, editable if you want to test a different assumption. FD interest
+      is usually taxable; mutual fund gains have their own tax rules —
+      this comparison shows pre-tax growth only.
+    </p>
+  </section>
+
+  <script>
+    import { getFundsProgressive, getCategories, averageReturn, type FundRecord } from "../../lib/fundData";
+
+    let allFunds: FundRecord[] = [];
+
+    function formatINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+
+    function futureValue(amount: number, ratePct: number, years: number) {
+      return amount * Math.pow(1 + ratePct / 100, years);
+    }
+
+    function syncPair(inputId: string, sliderId: string, value: number) {
+      (document.getElementById(inputId) as HTMLInputElement).value = String(value);
+      (document.getElementById(sliderId) as HTMLInputElement).value = String(value);
+    }
+
+    function calculate() {
+      const amount = Number((document.getElementById("amount") as HTMLInputElement).value) || 0;
+      const years = Number((document.getElementById("years") as HTMLInputElement).value) || 0;
+      document.getElementById("years-label")!.textContent = years === 1 ? "1 year" : `${years} years`;
+
+      const savingsRate = Number((document.getElementById("savings-rate-input") as HTMLInputElement).value) || 0;
+      const fdRate = Number((document.getElementById("fd-rate-input") as HTMLInputElement).value) || 0;
+      const mfRate = Number((document.getElementById("mf-rate-input") as HTMLInputElement).value) || 0;
+
+      const savingsFV = futureValue(amount, savingsRate, years);
+      const fdFV = futureValue(amount, fdRate, years);
+      const mfFV = futureValue(amount, mfRate, years);
+
+      document.getElementById("savings-result")!.textContent = formatINR(savingsFV);
+      document.getElementById("fd-result")!.textContent = formatINR(fdFV);
+      document.getElementById("mf-result")!.textContent = formatINR(mfFV);
+
+      const best = Math.max(savingsFV, fdFV, mfFV);
+      const bestLabel = best === mfFV ? "the Mutual Fund" : best === fdFV ? "the FD" : "the Savings Account";
+      const diff = best - Math.min(savingsFV, fdFV, mfFV);
+      document.getElementById("verdict-text")!.innerHTML =
+        `Over ${years} year${years === 1 ? "" : "s"}, <strong>${bestLabel}</strong> comes out ahead — a difference of <strong>${formatINR(diff)}</strong> versus the lowest option, at these rates. Mutual fund returns are never guaranteed like a bank rate, though — that's the trade-off for the higher potential.`;
+    }
+
+    function populateCategorySelect() {
+      const select = document.getElementById("mf-category") as HTMLSelectElement;
+      select.innerHTML = "";
+      for (const cat of getCategories(allFunds)) {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        select.appendChild(opt);
+      }
+    }
+
+    function applyCategoryRate() {
+      const select = document.getElementById("mf-category") as HTMLSelectElement;
+      const rate = averageReturn(allFunds, [select.value]);
+      if (rate !== null) {
+        syncPair("mf-rate-input", "mf-rate-slider", Number(rate.toFixed(2)));
+      }
+      calculate();
+    }
+
+    async function init() {
+      const statusEl = document.getElementById("data-status")!;
+      getFundsProgressive(
+        (firstBatch) => {
+          allFunds = firstBatch;
+          statusEl.textContent = allFunds.length ? `${allFunds.length} funds loaded so far — refining in the background...` : "No fund data uploaded yet — mutual fund rate defaults to 12%, editable.";
+          populateCategorySelect();
+          applyCategoryRate();
+        },
+        (fullData) => {
+          allFunds = fullData;
+          statusEl.textContent = allFunds.length ? `Using ${allFunds.length} funds' real average returns.` : "No fund data uploaded yet — mutual fund rate defaults to 12%, editable.";
+          populateCategorySelect();
+          applyCategoryRate();
+        }
+      );
+
+      document.getElementById("amount")?.addEventListener("input", calculate);
+      document.getElementById("years")?.addEventListener("input", calculate);
+      document.getElementById("mf-category")?.addEventListener("change", applyCategoryRate);
+
+      const pairs: [string, string][] = [
+        ["savings-rate-input", "savings-rate-slider"],
+        ["fd-rate-input", "fd-rate-slider"],
+        ["mf-rate-input", "mf-rate-slider"],
+      ];
+      for (const [inputId, sliderId] of pairs) {
+        document.getElementById(inputId)?.addEventListener("input", (e) => {
+          syncPair(inputId, sliderId, Number((e.target as HTMLInputElement).value));
+          calculate();
+        });
+        document.getElementById(sliderId)?.addEventListener("input", (e) => {
+          syncPair(inputId, sliderId, Number((e.target as HTMLInputElement).value));
+          calculate();
+        });
+      }
+
+      calculate();
+    }
+
+    init();
+  </script>
+</Layout>

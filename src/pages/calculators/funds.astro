@@ -10,6 +10,8 @@ import Layout from "../../layouts/Layout.astro";
 
     <div class="flex flex-wrap gap-3 mb-6 items-center justify-between">
       <div class="flex flex-wrap gap-3">
+        <input id="search-box" type="text" placeholder="Search fund name..."
+          class="border border-line rounded-lg px-4 py-2 text-sm w-56" />
         <select id="category-filter" class="border border-line rounded-lg px-4 py-2 text-sm bg-white">
           <option value="">All categories</option>
         </select>
@@ -57,8 +59,12 @@ import Layout from "../../layouts/Layout.astro";
     function render() {
       const category = (document.getElementById("category-filter") as HTMLSelectElement).value;
       const sortKey = (document.getElementById("sort-by") as HTMLSelectElement).value;
+      const search = (document.getElementById("search-box") as HTMLInputElement).value.trim().toLowerCase();
 
       let rows = category ? allFunds.filter((f) => f.category === category) : [...allFunds];
+      if (search) {
+        rows = rows.filter((f) => f.schemeName?.toLowerCase().includes(search));
+      }
       rows.sort((a, b) => {
         const av = sortKey === "aumCr" ? Number(a.aumCr) : Number(a.metrics?.[sortKey]);
         const bv = sortKey === "aumCr" ? Number(b.aumCr) : Number(b.metrics?.[sortKey]);
@@ -144,6 +150,7 @@ import Layout from "../../layouts/Layout.astro";
 
     document.getElementById("category-filter")?.addEventListener("change", render);
     document.getElementById("sort-by")?.addEventListener("change", render);
+    document.getElementById("search-box")?.addEventListener("input", render);
     document.getElementById("download-report")?.addEventListener("click", downloadFullReport);
     load();
   </script>
