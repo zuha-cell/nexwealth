@@ -12,6 +12,10 @@ import Layout from "../../layouts/Layout.astro";
       <div class="flex flex-wrap gap-3">
         <input id="search-box" type="text" placeholder="Search fund name..."
           class="border border-line rounded-lg px-4 py-2 text-sm w-56" />
+        <button id="shariah-filter" type="button"
+          class="border border-line rounded-lg px-4 py-2 text-sm hover:border-indigo transition-colors">
+          Shariah / Ethical only
+        </button>
         <select id="category-filter" class="border border-line rounded-lg px-4 py-2 text-sm bg-white">
           <option value="">All categories</option>
         </select>
@@ -56,12 +60,17 @@ import Layout from "../../layouts/Layout.astro";
       return isNaN(num) ? "—" : num.toFixed(2);
     }
 
+    let shariahOnly = false;
+
     function render() {
       const category = (document.getElementById("category-filter") as HTMLSelectElement).value;
       const sortKey = (document.getElementById("sort-by") as HTMLSelectElement).value;
       const search = (document.getElementById("search-box") as HTMLInputElement).value.trim().toLowerCase();
 
       let rows = category ? allFunds.filter((f) => f.category === category) : [...allFunds];
+      if (shariahOnly) {
+        rows = rows.filter((f) => /shariah|ethical|esg/i.test(f.schemeName ?? ""));
+      }
       if (search) {
         rows = rows.filter((f) => f.schemeName?.toLowerCase().includes(search));
       }
@@ -148,6 +157,13 @@ import Layout from "../../layouts/Layout.astro";
       URL.revokeObjectURL(url);
     }
 
+    document.getElementById("shariah-filter")?.addEventListener("click", () => {
+      shariahOnly = !shariahOnly;
+      const btn = document.getElementById("shariah-filter")!;
+      btn.classList.toggle("bg-indigo", shariahOnly);
+      btn.classList.toggle("text-paper", shariahOnly);
+      render();
+    });
     document.getElementById("category-filter")?.addEventListener("change", render);
     document.getElementById("sort-by")?.addEventListener("change", render);
     document.getElementById("search-box")?.addEventListener("input", render);

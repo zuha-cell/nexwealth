@@ -1,0 +1,89 @@
+---
+// Floating educational AI helper — included site-wide via Layout.astro.
+---
+
+<div id="ai-helper-root">
+  <button id="ai-helper-toggle"
+    class="fixed bottom-5 right-5 z-40 bg-indigo text-paper rounded-full w-14 h-14 shadow-lg flex items-center justify-center hover:bg-indigoLight transition-colors"
+    aria-label="Open education assistant"
+  >
+    💬
+  </button>
+
+  <div id="ai-helper-panel" class="hidden fixed bottom-24 right-5 z-40 w-[340px] max-w-[90vw] bg-white border border-line rounded-2xl shadow-xl flex flex-col overflow-hidden" style="height: 480px;">
+    <div class="bg-indigo text-paper px-4 py-3">
+      <p class="font-display text-sm">NEXWEALTH Education Assistant</p>
+      <p class="text-[10px] text-paper/70">Educational only — not investment advice.</p>
+    </div>
+
+    <div id="ai-helper-messages" class="flex-1 overflow-y-auto p-3 space-y-3 text-sm">
+      <div class="bg-indigo/5 rounded-lg p-2.5 text-ink/70">
+        Hi! Ask me about SIPs, mutual funds, FDs, inflation, or how to use the calculators on this site. I can't recommend specific stocks/funds or give buy/sell advice — for that, use the Contact page.
+      </div>
+    </div>
+
+    <form id="ai-helper-form" class="border-t border-line p-2 flex gap-2">
+      <input id="ai-helper-input" type="text" placeholder="Ask a question..."
+        class="flex-1 border border-line rounded-lg px-3 py-2 text-sm focus:border-indigo outline-none" />
+      <button type="submit" class="bg-indigo text-paper px-3 py-2 rounded-lg text-sm font-medium hover:bg-indigoLight transition-colors">
+        Send
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  const toggleBtn = document.getElementById("ai-helper-toggle")!;
+  const panel = document.getElementById("ai-helper-panel")!;
+  const messages = document.getElementById("ai-helper-messages")!;
+  const form = document.getElementById("ai-helper-form") as HTMLFormElement;
+  const input = document.getElementById("ai-helper-input") as HTMLInputElement;
+
+  toggleBtn.addEventListener("click", () => {
+    panel.classList.toggle("hidden");
+  });
+
+  function addMessage(text: string, from: "user" | "bot") {
+    const el = document.createElement("div");
+    el.className =
+      from === "user"
+        ? "bg-indigo text-paper rounded-lg p-2.5 self-end ml-8"
+        : "bg-indigo/5 rounded-lg p-2.5 text-ink/70 mr-8";
+    el.textContent = text;
+    messages.appendChild(el);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const question = input.value.trim();
+    if (!question) return;
+
+    addMessage(question, "user");
+    input.value = "";
+    input.disabled = true;
+
+    const loadingEl = document.createElement("div");
+    loadingEl.className = "text-xs text-ink/40 italic";
+    loadingEl.textContent = "Thinking...";
+    messages.appendChild(loadingEl);
+    messages.scrollTop = messages.scrollHeight;
+
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: question }),
+      });
+      const data = await res.json();
+      loadingEl.remove();
+      addMessage(data.answer ?? "Sorry, something went wrong — please try again.", "bot");
+    } catch {
+      loadingEl.remove();
+      addMessage("Sorry, something went wrong — please try again.", "bot");
+    } finally {
+      input.disabled = false;
+      input.focus();
+    }
+  });
+</script>

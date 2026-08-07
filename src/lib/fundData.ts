@@ -139,3 +139,10 @@ export function topFundsByReturn(funds: FundRecord[], categories: string[], n = 
     .sort((a, b) => (fundReturn(b) ?? 0) - (fundReturn(a) ?? 0))
     .slice(0, n);
 }
+
+/** Return for a specific period (3 or 5 years), falling back to the other if missing. */
+export function fundReturnForPeriod(fund: FundRecord, years: 3 | 5): number | null {
+  const primary = fund.metrics?.[`CAGR:${years} Yr`] ?? fund.metrics?.[`SIP Returns:${years} Yr`];
+  if (typeof primary === "number" && !isNaN(primary)) return primary;
+  return fundReturn(fund); // fall back to best-available
+}

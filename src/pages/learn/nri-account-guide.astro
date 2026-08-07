@@ -88,6 +88,55 @@ const tradingRules = [
       ))}
     </ul>
 
+    <h2 class="font-display text-2xl text-indigo mb-2">PIS bank charges compared</h2>
+    <p class="text-sm text-ink/60 mb-4">You'll need a PIS (Portfolio Investment Scheme) account with one of these banks — charges vary meaningfully, so worth comparing before you pick one. All figures in ₹, plus applicable GST.</p>
+    <div class="border border-line rounded-2xl overflow-x-auto mb-4">
+      <table class="w-full text-xs">
+        <thead class="bg-indigo/5 text-left">
+          <tr>
+            <th class="px-3 py-2">Bank</th>
+            <th class="px-3 py-2">Contract Note Charge</th>
+            <th class="px-3 py-2">PIS Issuance Charge</th>
+            <th class="px-3 py-2">PIS Annual Maintenance</th>
+            <th class="px-3 py-2">Avg. Quarterly Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ["HDFC Bank", "₹100 per contract note", "₹1,000", "₹1,000", "₹10,000"],
+            ["IndusInd Bank", "No charges", "NIL", "₹500", "₹10,000"],
+            ["Axis Bank", "NIL", "₹1,000", "₹1,500", "₹10,000"],
+            ["Kotak Bank", "₹100–300 (more than one scrip in CN)", "₹1,500", "₹1,000", "₹10,000"],
+            ["IDFC First Bank", "₹100 per contract note", "NIL", "₹500", "₹10,000"],
+            ["ICICI Bank", "₹50 per contract note", "₹1,000", "₹1,000", "Depends on account type"],
+          ].map((row) => (
+            <tr class="border-t border-line">
+              {row.map((cell, i) => (
+                <td class={`px-3 py-2 ${i === 0 ? "font-medium text-indigo" : "text-ink/70"}`}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-ink/45 mb-10">All charges above are exclusive of GST.</p>
+
+    <h2 class="font-display text-2xl text-indigo mb-2">TDS on sale proceeds</h2>
+    <p class="text-sm text-ink/60 mb-4">Banks deduct TDS on your sale proceeds automatically — here's the effective rate:</p>
+    <div class="grid sm:grid-cols-2 gap-4 mb-12">
+      <div class="border border-line rounded-2xl p-5">
+        <h3 class="font-medium text-indigo mb-2 text-sm">Short-Term Capital Gains</h3>
+        <p class="text-xs text-ink/60">Basic 20% + Surcharge 15% + Cess 4%</p>
+        <p class="font-mono text-2xl text-indigo mt-2">23.92%</p>
+      </div>
+      <div class="border border-line rounded-2xl p-5">
+        <h3 class="font-medium text-indigo mb-2 text-sm">Long-Term Capital Gains</h3>
+        <p class="text-xs text-ink/60">Basic 12.5% + Surcharge 15% + Cess 4%</p>
+        <p class="font-mono text-2xl text-indigo mt-2">14.95%</p>
+      </div>
+    </div>
+    <p class="text-xs text-ink/45 mb-12">For further clarification on TDS rates, coordinate with your PIS bank directly — rates and surcharge slabs can change.</p>
+
     <div class="border border-line rounded-2xl p-8 bg-indigo/5">
       <h2 class="font-display text-xl text-indigo mb-3">Ready to open your NRI account?</h2>
       <p class="text-sm text-ink/70 mb-5">
