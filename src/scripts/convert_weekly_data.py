@@ -26,7 +26,7 @@ import openpyxl
 # Sheets that are NOT category fund tables — skip these.
 SKIP_SHEETS = {
     "Template ID", "Home", "Mirae Asset Schemes", "Mutual Fund Top Picks",
-    "SIF", "Retirement Planning", "Childrens Fund", "Category Performance",
+    "SIF", "Category Performance",
     "Benchmark", "Glossary", "Disclaimer", "Sheet2",
 }
 

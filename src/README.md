@@ -61,6 +61,36 @@ nexwealth/
 > zip. On Mac, press `Cmd+Shift+.` in Finder to reveal them, or just use the
 > terminal (`ls -a`) to confirm.
 
+## AI Education Assistant setup (one-time)
+
+The floating chat widget on every page calls a Cloudflare Pages Function
+(`functions/api/ask.js`), which calls **Google's Gemini API (free tier)**
+server-side — the API key never reaches the browser.
+
+1. Go to **aistudio.google.com** → sign in with any Google account → **Get API key** → **Create API key**. No credit card needed.
+2. Cloudflare Pages → your project → Settings → Environment variables → add:
+   - `GEMINI_API_KEY` → your key (this one should NOT have the `PUBLIC_` prefix — it must stay server-side only)
+3. Redeploy. The widget is scoped to educational answers only — it will not
+   recommend specific stocks/funds or give buy/sell/target advice; see the
+   system prompt in `functions/api/ask.js` if you want to adjust its scope.
+4. Free tier limits (roughly 15 requests/minute, ~1,000/day as of mid-2026)
+   are fine for a small site — if traffic grows enough to hit those
+   regularly, enabling billing on the same Google AI Studio project
+   unlocks much higher limits without any code changes.
+5. Note: on the free tier, Google may use prompts/responses to improve
+   their models. Nothing personal/sensitive should be flowing through this
+   widget anyway given its educational scope, but worth knowing.
+
+## Language support (English / Hindi / Malayalam / Tamil)
+
+Phase 1 only: navigation, footer, and homepage are translated (`src/i18n/translations.ts`).
+The long-form guide pages (mutual fund guide, NRI guide, FAQ, etc.) aren't
+translated yet — that's a much bigger content job, best done page by page
+and ideally reviewed by a native speaker for financial terminology accuracy
+before publishing. To add a translation for a page: wrap the text in
+a `data-i18n="key"` attribute and add the key + translations for all 4
+languages to `translations.ts`.
+
 ## Firebase setup (one-time)
 
 1. **Firestore Database** → Create database → pick a Mumbai region (`asia-south1` or `asia-south2`) → **Production mode**.

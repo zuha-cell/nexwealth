@@ -2,12 +2,12 @@
 import Layout from "../layouts/Layout.astro";
 
 const modules = [
-  { name: "Learning Centre", desc: "Plain-language guides on saving, investing, and taxes.", href: "/learn" },
-  { name: "Video Library", desc: "Short explainers you can actually finish.", href: "/videos" },
-  { name: "Calculators", desc: "SIP, CAGR, XIRR, retirement, FIRE, and more.", href: "/calculators" },
-  { name: "Comparison Tools", desc: "Mutual funds, ETFs, FDs, and savings accounts side by side.", href: "/tools" },
-  { name: "Resources", desc: "Demat, insurance, cards, and apps we've vetted.", href: "/resources" },
-  { name: "Blog", desc: "Weekly notes on rates, markets, and money habits.", href: "/blog" },
+  { key: "learn", href: "/learn" },
+  { key: "videos", href: "/videos" },
+  { key: "calc", href: "/calculators" },
+  { key: "compare", href: "/calculators/compare" },
+  { key: "resources", href: "/resources" },
+  { key: "blog", href: "/blog" },
 ];
 ---
 
@@ -28,19 +28,19 @@ const modules = [
       />
     </svg>
     <div class="max-w-6xl mx-auto px-6 pt-20 pb-32 relative">
-      <p class="font-mono text-xs tracking-widest uppercase text-gold mb-4">Educational · Unbiased · Free</p>
+      <p class="font-mono text-xs tracking-widest uppercase text-gold mb-4" data-i18n="home_badge">Educational · Unbiased · Free</p>
       <h1 class="font-display text-5xl md:text-6xl leading-[1.05] text-indigo max-w-2xl">
-        Plan today.<br />Prosper tomorrow.
+        <span data-i18n="home_h1_line1">Plan today.</span><br /><span data-i18n="home_h1_line2">Prosper tomorrow.</span>
       </h1>
-      <p class="mt-6 text-lg text-ink/70 max-w-xl">
+      <p class="mt-6 text-lg text-ink/70 max-w-xl" data-i18n="home_subtitle">
         Simple, unbiased financial education and practical tools — calculators,
         comparisons, and guides, without the sales pitch.
       </p>
       <div class="mt-8 flex gap-4">
-        <a href="/calculators" class="bg-indigo text-paper px-6 py-3 rounded-full font-medium hover:bg-indigoLight transition-colors">
+        <a href="/calculators" class="bg-indigo text-paper px-6 py-3 rounded-full font-medium hover:bg-indigoLight transition-colors" data-i18n="home_cta_calc">
           Try a calculator
         </a>
-        <a href="/learn" class="border border-line px-6 py-3 rounded-full font-medium hover:border-indigo transition-colors">
+        <a href="/learn" class="border border-line px-6 py-3 rounded-full font-medium hover:border-indigo transition-colors" data-i18n="home_cta_learn">
           Start learning
         </a>
       </div>
@@ -49,12 +49,12 @@ const modules = [
 
   <!-- Module overview -->
   <section class="max-w-6xl mx-auto px-6 py-16">
-    <h2 class="font-display text-2xl text-indigo mb-8">Everything in one place</h2>
+    <h2 class="font-display text-2xl text-indigo mb-8" data-i18n="home_modules_title">Everything in one place</h2>
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {modules.map((m) => (
         <a href={m.href} class="block border border-line rounded-2xl p-6 hover:border-indigo transition-colors">
-          <h3 class="font-display text-lg text-indigo mb-2">{m.name}</h3>
-          <p class="text-sm text-ink/65">{m.desc}</p>
+          <h3 class="font-display text-lg text-indigo mb-2" data-i18n={`mod_${m.key}_name`}>{m.key}</h3>
+          <p class="text-sm text-ink/65" data-i18n={`mod_${m.key}_desc`}>{m.key}</p>
         </a>
       ))}
     </div>

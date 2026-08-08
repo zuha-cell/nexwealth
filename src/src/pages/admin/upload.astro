@@ -30,6 +30,11 @@ import Layout from "../../layouts/Layout.astro";
         </button>
         <span id="inflation-status" class="text-xs text-gain"></span>
       </div>
+      <p id="inflation-freshness" class="text-xs mt-3"></p>
+      <a href="https://www.mospi.gov.in/themes/product/9-consumer-price-index-cpi#database"
+        target="_blank" rel="noopener noreferrer" class="text-xs text-indigo underline mt-1 inline-block">
+        Check latest CPI figure on MoSPI →
+      </a>
     </div>
 
     <div id="upload-panel" class="hidden">
@@ -79,9 +84,25 @@ import Layout from "../../layouts/Layout.astro";
 
     async function loadInflationRate() {
       const input = document.getElementById("inflation-input") as HTMLInputElement;
+      const freshness = document.getElementById("inflation-freshness")!;
       try {
         const snap = await getDoc(doc(db, "settings", "inflationRate"));
-        input.value = snap.exists() ? String(snap.data().rate) : "5.5";
+        if (snap.exists()) {
+          input.value = String(snap.data().rate);
+          const updatedAt = snap.data().updatedAt?.toDate?.();
+          if (updatedAt) {
+            const daysAgo = Math.floor((Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24));
+            const stale = daysAgo > 35; // CPI releases roughly monthly — flag if it's been over ~5 weeks
+            freshness.textContent = `Last updated ${daysAgo} day${daysAgo === 1 ? "" : "s"} ago.` + (stale ? " Likely stale — check MoSPI for this month's figure." : "");
+            freshness.className = "text-xs mt-3 " + (stale ? "text-loss font-medium" : "text-ink/45");
+          } else {
+            freshness.textContent = "";
+          }
+        } else {
+          input.value = "5.5";
+          freshness.textContent = "Never set — showing a fallback default.";
+          freshness.className = "text-xs mt-3 text-loss font-medium";
+        }
       } catch {
         input.value = "5.5";
       }
@@ -108,7 +129,7 @@ import Layout from "../../layouts/Layout.astro";
     // ---- Parsing logic — mirrors scripts/convert_weekly_data.py ----
     const SKIP_SHEETS = new Set([
       "Template ID", "Home", "Mirae Asset Schemes", "Mutual Fund Top Picks",
-      "SIF", "Retirement Planning", "Childrens Fund", "Category Performance",
+      "SIF", "Category Performance",
       "Benchmark", "Glossary", "Disclaimer", "Sheet2",
     ]);
 
