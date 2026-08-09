@@ -1,0 +1,134 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Insurance Needs Calculator" description="Find out how much term life cover you actually need.">
+  <section class="max-w-3xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">Insurance Needs Calculator</h1>
+    <p class="text-ink/65 mb-8">Work out how much term life cover fits your situation — quick estimate or a more detailed needs-based number.</p>
+
+    <div class="border border-line rounded-2xl p-6 mb-6">
+      <p class="text-sm font-medium mb-3">Method:</p>
+      <div class="flex gap-3">
+        <button type="button" id="mode-quick" class="flex-1 px-4 py-2 rounded-full text-sm font-medium border border-line">Quick multiplier</button>
+        <button type="button" id="mode-detailed" class="flex-1 px-4 py-2 rounded-full text-sm font-medium border border-line">Detailed needs-based</button>
+      </div>
+    </div>
+
+    <!-- Quick mode -->
+    <div id="quick-panel" class="bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2 mb-6">
+        <span class="text-sm font-medium">Annual income (₹)</span>
+        <input type="number" id="quick-income" value="1000000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-sm font-medium">Multiplier</span>
+          <span id="quick-multiplier-label" class="font-mono text-sm text-indigo">15x</span>
+        </div>
+        <input type="range" id="quick-multiplier" min="10" max="20" step="1" value="15" class="w-full" />
+      </div>
+    </div>
+
+    <!-- Detailed mode -->
+    <div id="detailed-panel" class="hidden bg-white/60 border border-line rounded-2xl p-8 mb-8 grid sm:grid-cols-2 gap-6">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Annual income (₹)</span>
+        <input type="number" id="detailed-income" value="1000000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Years until retirement</span>
+        <input type="number" id="years-to-retire" value="25" min="1" max="45" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Outstanding loans (home, personal, etc.) (₹)</span>
+        <input type="number" id="liabilities" value="2000000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Future goals (education, marriage, etc.) (₹)</span>
+        <input type="number" id="future-goals" value="1500000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Existing savings & investments (₹)</span>
+        <input type="number" id="existing-assets" value="500000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Existing life cover (₹)</span>
+        <input type="number" id="existing-cover" value="0" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+    </div>
+
+    <div class="border border-line rounded-2xl p-8 bg-indigo mb-4">
+      <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Recommended term cover</p>
+      <p id="result-cover" class="font-mono text-3xl text-paper">₹0</p>
+    </div>
+    <p id="result-explain" class="text-xs text-ink/50 mb-10"></p>
+
+    <div class="border border-line rounded-2xl p-8 bg-indigo/5">
+      <h2 class="font-display text-lg text-indigo mb-3">Ready to compare policies?</h2>
+      <p class="text-sm text-ink/70 mb-5">
+        Use this number as a starting point when comparing term plans —
+        insurers price similarly-sized covers quite differently.
+      </p>
+      <a href="https://advisor.turtlemintinsurance.com/profile/MUH4331373/muhammed_zuhair_nalakath" target="_blank" rel="noopener noreferrer sponsored"
+        class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+        Compare policies on Turtlemint
+      </a>
+    </div>
+
+    <p class="mt-8 text-xs text-ink/45">
+      This is an educational estimate, not a personalized recommendation —
+      actual cover needs vary with health, existing policies, and family
+      circumstances. Speak with a licensed advisor before buying a policy.
+    </p>
+  </section>
+
+  <script>
+    let mode: "quick" | "detailed" = "quick";
+
+    function fmtINR(n: number) {
+      return "₹" + Math.round(Math.max(0, n)).toLocaleString("en-IN");
+    }
+
+    function calculate() {
+      if (mode === "quick") {
+        const income = Number((document.getElementById("quick-income") as HTMLInputElement).value) || 0;
+        const multiplier = Number((document.getElementById("quick-multiplier") as HTMLInputElement).value) || 0;
+        document.getElementById("quick-multiplier-label")!.textContent = `${multiplier}x`;
+        const cover = income * multiplier;
+        document.getElementById("result-cover")!.textContent = fmtINR(cover);
+        document.getElementById("result-explain")!.textContent = `${fmtINR(income)} annual income × ${multiplier}.`;
+      } else {
+        const income = Number((document.getElementById("detailed-income") as HTMLInputElement).value) || 0;
+        const years = Number((document.getElementById("years-to-retire") as HTMLInputElement).value) || 0;
+        const liabilities = Number((document.getElementById("liabilities") as HTMLInputElement).value) || 0;
+        const goals = Number((document.getElementById("future-goals") as HTMLInputElement).value) || 0;
+        const assets = Number((document.getElementById("existing-assets") as HTMLInputElement).value) || 0;
+        const existingCover = Number((document.getElementById("existing-cover") as HTMLInputElement).value) || 0;
+
+        const cover = income * years + liabilities + goals - assets - existingCover;
+        document.getElementById("result-cover")!.textContent = fmtINR(cover);
+        document.getElementById("result-explain")!.textContent =
+          `(${fmtINR(income)} income × ${years} years) + ${fmtINR(liabilities)} liabilities + ${fmtINR(goals)} future goals − ${fmtINR(assets)} existing savings − ${fmtINR(existingCover)} existing cover.`;
+      }
+    }
+
+    function setMode(newMode: "quick" | "detailed") {
+      mode = newMode;
+      document.getElementById("quick-panel")!.classList.toggle("hidden", mode !== "quick");
+      document.getElementById("detailed-panel")!.classList.toggle("hidden", mode !== "detailed");
+      document.getElementById("mode-quick")!.classList.toggle("bg-indigo", mode === "quick");
+      document.getElementById("mode-quick")!.classList.toggle("text-paper", mode === "quick");
+      document.getElementById("mode-detailed")!.classList.toggle("bg-indigo", mode === "detailed");
+      document.getElementById("mode-detailed")!.classList.toggle("text-paper", mode === "detailed");
+      calculate();
+    }
+
+    document.getElementById("mode-quick")?.addEventListener("click", () => setMode("quick"));
+    document.getElementById("mode-detailed")?.addEventListener("click", () => setMode("detailed"));
+    document.querySelectorAll("input").forEach((el) => el.addEventListener("input", calculate));
+
+    setMode("quick");
+  </script>
+</Layout>

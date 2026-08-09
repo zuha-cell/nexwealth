@@ -1,0 +1,96 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+const insuranceTypes = [
+  ["Term Life", "Pure protection — payout to your family if you die during the term, no maturity payout if you outlive it", "N/A (protection only)", "Cheapest way to get high cover", "Primary earners with dependents"],
+  ["Whole Life", "Lifetime cover plus an eventual payout, whenever death occurs", "N/A (protection only)", "Higher premium than term", "Estate/legacy planning"],
+  ["Endowment", "Insurance combined with guaranteed savings, paid out at maturity or death", "Low", "Often lower returns than separate term + mutual fund investing", "Risk-averse, disciplined forced savers"],
+  ["ULIP", "Insurance combined with market-linked investment in one product", "Market-linked", "Complex charge structure — read the fine print", "Those wanting one combined product"],
+  ["Health Insurance (Individual/Family Floater)", "Covers hospitalization and medical expenses", "N/A (protection only)", "Essential given rising healthcare costs", "Everyone"],
+  ["Critical Illness Cover", "Lump sum payout on diagnosis of specified serious illnesses", "N/A (protection only)", "Add-on, not a replacement for health insurance", "Supplementing health cover"],
+  ["Personal Accident Cover", "Payout for accidental death or disability", "N/A (protection only)", "Cheap add-on", "Extra income protection"],
+  ["Motor Insurance", "Covers vehicle damage and third-party liability", "N/A (protection only)", "Legally mandatory for vehicle owners", "All vehicle owners"],
+];
+---
+
+<Layout title="Complete Insurance Guide" description="Every insurance type explained — what it does, and how much cover you actually need.">
+  <section class="max-w-4xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Learning Centre</p>
+    <h1 class="font-display text-4xl text-indigo mb-6">Complete Insurance Guide</h1>
+    <p class="text-ink/70 leading-relaxed mb-10">
+      Insurance and investing get bundled together a lot in how they're
+      sold, but they solve different problems — insurance protects against
+      what could go wrong, investing builds what you're working toward.
+      Here's what each type of policy actually does.
+    </p>
+
+    <h2 class="font-display text-2xl text-indigo mb-4">Types of insurance at a glance</h2>
+    <div class="border border-line rounded-2xl overflow-x-auto mb-12">
+      <table class="w-full text-sm">
+        <thead class="bg-indigo/5 text-left">
+          <tr>
+            <th class="px-4 py-3">Type</th>
+            <th class="px-4 py-3">What it does</th>
+            <th class="px-4 py-3">Return component</th>
+            <th class="px-4 py-3">Worth knowing</th>
+            <th class="px-4 py-3">Suited for</th>
+          </tr>
+        </thead>
+        <tbody>
+          {insuranceTypes.map((row) => (
+            <tr class="border-t border-line">
+              {row.map((cell, i) => (
+                <td class={`px-4 py-2 ${i === 0 ? "font-medium text-indigo" : "text-ink/70"}`}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="font-display text-2xl text-indigo mb-4">How much cover do you actually need?</h2>
+    <div class="grid sm:grid-cols-2 gap-4 mb-12">
+      <div class="border border-line rounded-2xl p-5">
+        <h3 class="font-medium text-indigo mb-2 text-sm">Term life — quick rule</h3>
+        <p class="text-sm text-ink/65">A common starting point is <strong>10–15× your annual income</strong>. It's a fast estimate, not a precise number — your actual liabilities and dependents matter more.</p>
+      </div>
+      <div class="border border-line rounded-2xl p-5">
+        <h3 class="font-medium text-indigo mb-2 text-sm">Term life — needs-based</h3>
+        <p class="text-sm text-ink/65">Adds up income replacement for your working years, outstanding loans, and future goals (education, marriage), minus what you already have saved or insured. More accurate — use the calculator below.</p>
+      </div>
+      <div class="border border-line rounded-2xl p-5">
+        <h3 class="font-medium text-indigo mb-2 text-sm">Health insurance</h3>
+        <p class="text-sm text-ink/65">A common baseline in metro cities is <strong>₹5–10 lakh per person</strong>, though healthcare costs vary a lot by city and hospital. A "super top-up" plan is often a cheap way to raise your cover without a full new policy.</p>
+      </div>
+      <div class="border border-line rounded-2xl p-5">
+        <h3 class="font-medium text-indigo mb-2 text-sm">When to review</h3>
+        <p class="text-sm text-ink/65">Cover needs tend to jump after marriage, a child, or taking on a home loan — worth revisiting your policy at each of those points, not just once at the start.</p>
+      </div>
+    </div>
+
+    <h2 class="font-display text-2xl text-indigo mb-4">A few things worth knowing</h2>
+    <ul class="text-ink/70 space-y-2 mb-12 list-disc list-inside">
+      <li>Term insurance is generally the cheapest way to get meaningful cover — premiums rise the longer you wait, so buying early (while young and healthy) usually locks in a lower rate for the policy term.</li>
+      <li>A commonly cited principle among financial planners: keeping insurance and investing as separate products (term insurance + mutual funds, rather than an endowment or ULIP that bundles both) tends to be more cost-efficient — each product does one job well, rather than doing two jobs at a compromise.</li>
+      <li>Read the exclusions list on any health policy carefully — waiting periods for pre-existing conditions and specific procedure exclusions vary a lot between insurers.</li>
+      <li>Nominate your beneficiaries correctly and keep them updated — this is the single most common cause of claim delays.</li>
+    </ul>
+
+    <div class="border border-line rounded-2xl p-8 bg-indigo/5">
+      <h2 class="font-display text-xl text-indigo mb-3">Find out how much cover you need</h2>
+      <p class="text-sm text-ink/70 mb-5">
+        Use the calculator to get a real number based on your income,
+        dependents, and existing liabilities — then compare policies through
+        my Turtlemint advisor profile.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <a href="/calculators/insurance-needs" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+          Try the Insurance Needs Calculator
+        </a>
+        <a href="https://advisor.turtlemintinsurance.com/profile/MUH4331373/muhammed_zuhair_nalakath" target="_blank" rel="noopener noreferrer sponsored" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors">
+          Compare policies on Turtlemint
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

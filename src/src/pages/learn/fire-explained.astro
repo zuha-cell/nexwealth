@@ -1,0 +1,53 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="What is FIRE?" description="Financial Independence, Retire Early — the 25x rule explained simply.">
+  <section class="max-w-3xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Learning Centre</p>
+    <h1 class="font-display text-4xl text-indigo mb-6">What is FIRE?</h1>
+
+    <p class="text-ink/70 leading-relaxed mb-4">
+      FIRE stands for <strong>Financial Independence, Retire Early</strong>.
+      The core idea: build a large enough investment corpus that the
+      returns alone can cover your living expenses indefinitely — at that
+      point, working becomes optional, whatever age you are.
+    </p>
+
+    <h2 class="font-display text-xl text-indigo mb-3 mt-8">The 25x / 4% rule</h2>
+    <p class="text-ink/70 leading-relaxed mb-4">
+      The most common FIRE benchmark: your <strong>FIRE number</strong> is
+      roughly <strong>25 times your annual expenses</strong>. The logic —
+      if you withdraw 4% of your corpus a year, and your investments grow
+      faster than that on average over the long run, the corpus can
+      theoretically last indefinitely. Some people use a more conservative
+      3% withdrawal rate instead, which means a target of 33x expenses.
+    </p>
+
+    <h2 class="font-display text-xl text-indigo mb-3 mt-8">A simple example</h2>
+    <p class="text-ink/70 leading-relaxed mb-4">
+      Spend ₹6,00,000 a year? Your FIRE number at the 4% rule is
+      ₹1,50,00,000 (25 × ₹6,00,000). How fast you get there depends on how
+      much you already have invested, how much you add monthly, and what
+      return your investments earn.
+    </p>
+
+    <h2 class="font-display text-xl text-indigo mb-3 mt-8">Worth knowing before you chase it</h2>
+    <ul class="text-ink/70 space-y-2 mb-8 list-disc list-inside">
+      <li>The 4% rule is a rule of thumb from historical US market data — it's a starting point, not a guarantee.</li>
+      <li>Expenses tend to rise over decades (inflation), and life circumstances change — this isn't a "set once and forget" number.</li>
+      <li>Market returns aren't constant year to year, even if the long-run average holds.</li>
+    </ul>
+
+    <div class="border border-line rounded-2xl p-8 bg-indigo/5">
+      <h2 class="font-display text-lg text-indigo mb-3">Find your own FIRE number</h2>
+      <p class="text-sm text-ink/70 mb-5">
+        Plug in your real expenses, savings, and investment rate — see your
+        number and how many years away it is.
+      </p>
+      <a href="/calculators/fire" class="inline-block bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+        Try the FIRE Calculator
+      </a>
+    </div>
+  </section>
+</Layout>
