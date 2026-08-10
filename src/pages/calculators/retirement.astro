@@ -1,0 +1,163 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Retirement Calculator" description="Find your retirement number, the SIP you need to get there, and real funds suited for it.">
+  <section class="max-w-3xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">Retirement Calculator</h1>
+    <p class="text-ink/65 mb-8">Work out your target corpus and the monthly SIP needed to get there.</p>
+
+    <div class="grid sm:grid-cols-2 gap-6 bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Current age</span>
+        <input type="number" id="current-age" value="30" min="18" max="70" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Retirement age</span>
+        <input type="number" id="retire-age" value="60" min="35" max="75" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Current monthly expenses (₹)</span>
+        <input type="number" id="monthly-expenses" value="40000" min="0" step="1000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Expected inflation (%)</span>
+        <input type="number" id="inflation-input" value="5.5" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Expected pre-retirement return (%)</span>
+        <input type="number" id="pre-return" value="11" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Current retirement savings (₹, optional)</span>
+        <input type="number" id="current-savings" value="0" min="0" step="1000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-4 mb-10">
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Years to retirement</p>
+        <p id="years-to-retire" class="font-mono text-xl text-indigo">—</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Target corpus needed</p>
+        <p id="target-corpus" class="font-mono text-xl text-indigo">—</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6 bg-indigo">
+        <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Monthly SIP needed</p>
+        <p id="sip-needed" class="font-mono text-xl text-paper">—</p>
+      </div>
+    </div>
+    <p class="text-xs text-ink/45 mb-12">
+      Target corpus uses the 4% withdrawal rule (corpus = 25× your inflation-adjusted annual expenses at retirement) — a common estimate, not a guarantee your money will last exactly that long. Actual needs vary with your health, lifestyle, and market conditions in retirement.
+    </p>
+
+    <h2 class="font-display text-xl text-indigo mb-2">Real funds suited for retirement</h2>
+    <p id="data-status" class="text-xs text-ink/45 mb-4">Loading fund data...</p>
+    <div id="fund-suggestions" class="border border-line rounded-2xl divide-y divide-line mb-8"></div>
+
+    <div class="flex flex-wrap gap-3">
+      <a id="compare-link" href="/calculators/compare" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+        Compare these funds
+      </a>
+      <a href="/resources" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors">
+        Ready to invest? Open an account
+      </a>
+    </div>
+  </section>
+
+  <script>
+    import { getFundsProgressive, topFundsByReturn, fundReturn, type FundRecord } from "../../lib/fundData";
+    import { db } from "../../lib/firebase";
+    import { doc, getDoc } from "firebase/firestore";
+
+    let allFunds: FundRecord[] = [];
+    const RETIREMENT_CATEGORIES = ["Retirement Planning", "Equity - Index", "Conservative Hybrid"];
+
+    function fmtINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+
+    function calculate() {
+      const currentAge = Number((document.getElementById("current-age") as HTMLInputElement).value) || 0;
+      const retireAge = Number((document.getElementById("retire-age") as HTMLInputElement).value) || 0;
+      const monthlyExpenses = Number((document.getElementById("monthly-expenses") as HTMLInputElement).value) || 0;
+      const inflation = Number((document.getElementById("inflation-input") as HTMLInputElement).value) || 0;
+      const preReturn = Number((document.getElementById("pre-return") as HTMLInputElement).value) || 0;
+      const currentSavings = Number((document.getElementById("current-savings") as HTMLInputElement).value) || 0;
+
+      const years = Math.max(0, retireAge - currentAge);
+      document.getElementById("years-to-retire")!.textContent = String(years);
+
+      const futureAnnualExpense = monthlyExpenses * 12 * Math.pow(1 + inflation / 100, years);
+      const targetCorpus = futureAnnualExpense * 25;
+      document.getElementById("target-corpus")!.textContent = fmtINR(targetCorpus);
+
+      const grownSavings = currentSavings * Math.pow(1 + preReturn / 100, years);
+      const remainingNeeded = Math.max(0, targetCorpus - grownSavings);
+
+      const i = preReturn / 100 / 12;
+      const n = years * 12;
+      let sipNeeded = 0;
+      if (n > 0) {
+        sipNeeded = i === 0 ? remainingNeeded / n : remainingNeeded / (((Math.pow(1 + i, n) - 1) / i) * (1 + i));
+      }
+      document.getElementById("sip-needed")!.textContent = years > 0 ? fmtINR(sipNeeded) : "—";
+    }
+
+    function renderSuggestions() {
+      const wrap = document.getElementById("fund-suggestions")!;
+      const funds = topFundsByReturn(allFunds, RETIREMENT_CATEGORIES, 5);
+      if (!funds.length) {
+        wrap.innerHTML = `<div class="p-4 text-sm text-ink/40">No fund data uploaded yet — check back after this week's upload.</div>`;
+        return;
+      }
+      wrap.innerHTML = funds
+        .map((f) => {
+          const ret = fundReturn(f);
+          return `<div class="p-4 flex items-center justify-between gap-4">
+            <div>
+              <p class="font-medium text-indigo text-sm">${f.schemeName}</p>
+              <p class="text-xs text-ink/45">${f.category}${ret !== null ? ` · ${ret.toFixed(1)}% CAGR` : ""}</p>
+            </div>
+          </div>`;
+        })
+        .join("");
+
+      const top = funds[0];
+      if (top) {
+        const params = new URLSearchParams({ cat: top.category, fund: top.isin ?? top.schemeName });
+        (document.getElementById("compare-link") as HTMLAnchorElement).href = `/calculators/compare?${params.toString()}`;
+      }
+    }
+
+    async function init() {
+      try {
+        const snap = await getDoc(doc(db, "settings", "inflationRate"));
+        if (snap.exists() && typeof snap.data().rate === "number") {
+          (document.getElementById("inflation-input") as HTMLInputElement).value = String(snap.data().rate);
+        }
+      } catch {}
+
+      const statusEl = document.getElementById("data-status")!;
+      getFundsProgressive(
+        (firstBatch) => {
+          allFunds = firstBatch;
+          statusEl.textContent = allFunds.length ? `${allFunds.length} funds so far — loading the rest...` : "No fund data uploaded yet.";
+          renderSuggestions();
+        },
+        (fullData) => {
+          allFunds = fullData;
+          statusEl.textContent = allFunds.length ? `Using ${allFunds.length} real funds.` : "No fund data uploaded yet.";
+          renderSuggestions();
+        }
+      );
+
+      document.querySelectorAll("input").forEach((el) => el.addEventListener("input", calculate));
+      calculate();
+    }
+
+    init();
+  </script>
+</Layout>

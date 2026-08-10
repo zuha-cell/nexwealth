@@ -1,0 +1,177 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="FIRE Calculator" description="Find your FIRE number and how many years until you get there.">
+  <section class="max-w-3xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">FIRE Calculator</h1>
+    <p class="text-ink/65 mb-4">
+      Financial Independence, Retire Early — find your number and how long
+      it takes to get there at your current savings rate.
+    </p>
+    <p id="data-status" class="text-xs text-ink/45 mb-8">Loading fund data...</p>
+
+    <div class="grid sm:grid-cols-2 gap-6 bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Current age</span>
+        <input type="number" id="current-age" value="28" min="18" max="70" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Current annual expenses (₹)</span>
+        <input type="number" id="annual-expense" value="600000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Current investments (₹)</span>
+        <input type="number" id="current-savings" value="500000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Monthly investment (₹)</span>
+        <input type="number" id="monthly-invest" value="25000" min="0" step="500" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Expected annual return (%)</span>
+        <input type="number" id="growth-rate" value="12" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+        <span class="text-xs text-ink/40" id="growth-rate-note"></span>
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Safe withdrawal rate</span>
+        <select id="withdrawal-rate" class="border border-line rounded-lg px-4 py-2 bg-white">
+          <option value="4">4% (25x expenses)</option>
+          <option value="3">3% (33x expenses — more conservative)</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="border border-line rounded-2xl p-8 mb-10">
+      <div class="grid sm:grid-cols-3 gap-4">
+        <div>
+          <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Your FIRE number</p>
+          <p id="fire-number" class="font-mono text-lg text-indigo">₹0</p>
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Years to FIRE</p>
+          <p id="years-to-fire" class="font-mono text-lg text-indigo">—</p>
+        </div>
+        <div class="bg-indigo rounded-xl p-4 -m-4">
+          <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">FIRE age</p>
+          <p id="fire-age" class="font-mono text-lg text-paper">—</p>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="font-display text-lg text-indigo mb-3">Real growth-oriented funds</h2>
+    <div id="top-funds-list" class="border border-line rounded-2xl divide-y divide-line mb-8"></div>
+
+    <div class="border border-line rounded-2xl p-8 bg-indigo/5">
+      <h2 class="font-display text-lg text-indigo mb-3">Ready to start?</h2>
+      <div class="flex flex-wrap gap-3">
+        <a href="/calculators/compare?cat=Flexi+Cap" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+          Compare growth funds
+        </a>
+        <a href="https://diy.sharekhan.com/app/Account/RegisterFOS?grpcd=13977&type=pb&grpid=14427&utm_empcode=PB13977USER&FormType=CDSL&CustomerType=FOS"
+          target="_blank" rel="noopener noreferrer sponsored"
+          class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors">
+          Open a Sharekhan account
+        </a>
+      </div>
+    </div>
+
+    <p class="mt-8 text-xs text-ink/45">
+      Educational estimate only — assumes a constant annual return and
+      constant expenses, neither of which holds exactly in real life. Not
+      personalized financial advice.
+    </p>
+  </section>
+
+  <script>
+    import { getFundsProgressive, averageReturn, topFundsByReturn, fundReturn, type FundRecord } from "../../lib/fundData";
+
+    let allFunds: FundRecord[] = [];
+    const FIRE_CATEGORIES = ["Flexi Cap", "Multi Cap", "Large Cap", "Equity - Index"];
+
+    function fmtINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+
+    function calculate() {
+      const currentAge = Number((document.getElementById("current-age") as HTMLInputElement).value) || 0;
+      const annualExpense = Number((document.getElementById("annual-expense") as HTMLInputElement).value) || 0;
+      const currentSavings = Number((document.getElementById("current-savings") as HTMLInputElement).value) || 0;
+      const monthlyInvest = Number((document.getElementById("monthly-invest") as HTMLInputElement).value) || 0;
+      const growth = Number((document.getElementById("growth-rate") as HTMLInputElement).value) || 0;
+      const withdrawalRate = Number((document.getElementById("withdrawal-rate") as HTMLSelectElement).value) || 4;
+
+      const fireNumber = annualExpense / (withdrawalRate / 100);
+      document.getElementById("fire-number")!.textContent = fmtINR(fireNumber);
+
+      // Simulate year by year until corpus hits fireNumber (simple, transparent, no algebra needed)
+      let corpus = currentSavings;
+      const monthlyRate = growth / 100 / 12;
+      let months = 0;
+      const maxMonths = 70 * 12; // safety cap
+      while (corpus < fireNumber && months < maxMonths) {
+        corpus = corpus * (1 + monthlyRate) + monthlyInvest;
+        months++;
+      }
+
+      if (corpus >= fireNumber) {
+        const years = months / 12;
+        document.getElementById("years-to-fire")!.textContent = years.toFixed(1) + " yrs";
+        document.getElementById("fire-age")!.textContent = Math.round(currentAge + years) + "";
+      } else {
+        document.getElementById("years-to-fire")!.textContent = "70+ yrs";
+        document.getElementById("fire-age")!.textContent = "—";
+      }
+    }
+
+    function renderTopFunds() {
+      const list = document.getElementById("top-funds-list")!;
+      const funds = topFundsByReturn(allFunds, FIRE_CATEGORIES, 6);
+      if (!funds.length) {
+        list.innerHTML = `<div class="p-4 text-sm text-ink/40">No fund data uploaded yet.</div>`;
+        return;
+      }
+      list.innerHTML = funds
+        .map((f) => {
+          const ret = fundReturn(f);
+          const params = new URLSearchParams({ cat: f.category, fund: f.isin ?? f.schemeName });
+          return `<div class="p-4 flex items-center justify-between gap-4">
+            <div>
+              <p class="font-medium text-indigo text-sm">${f.schemeName}</p>
+              <p class="text-xs text-ink/45">${f.category}${ret !== null ? ` · ${ret.toFixed(1)}% CAGR` : ""}</p>
+            </div>
+            <a href="/calculators/compare?${params.toString()}" class="text-xs font-medium text-indigo underline shrink-0">Compare →</a>
+          </div>`;
+        })
+        .join("");
+    }
+
+    async function init() {
+      const statusEl = document.getElementById("data-status")!;
+      getFundsProgressive(
+        (firstBatch) => {
+          allFunds = firstBatch;
+          statusEl.textContent = allFunds.length ? `${allFunds.length} funds so far — loading the rest...` : "No fund data uploaded yet.";
+          const avg = averageReturn(allFunds, FIRE_CATEGORIES);
+          if (avg !== null) {
+            (document.getElementById("growth-rate") as HTMLInputElement).value = String(avg.toFixed(1));
+            document.getElementById("growth-rate-note")!.textContent = `Prefilled from growth fund average (${avg.toFixed(1)}%) — editable.`;
+          }
+          renderTopFunds();
+          calculate();
+        },
+        (fullData) => {
+          allFunds = fullData;
+          statusEl.textContent = allFunds.length ? `${allFunds.length} real funds loaded.` : "No fund data uploaded yet.";
+          renderTopFunds();
+        }
+      );
+
+      document.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", calculate));
+      calculate();
+    }
+
+    init();
+  </script>
+</Layout>

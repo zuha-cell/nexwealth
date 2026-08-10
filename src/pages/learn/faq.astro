@@ -39,28 +39,28 @@ const faqs = [
 
 <Layout title="Frequently Asked Questions" description="Common questions about starting to invest, demat accounts, SIPs, and returns.">
   <section class="max-w-3xl mx-auto px-6 py-16">
-    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Getting started</p>
-    <h1 class="font-display text-4xl text-indigo mb-10">Frequently asked questions</h1>
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3" data-i18n="faq_badge">Getting started</p>
+    <h1 class="font-display text-4xl text-indigo mb-10" data-i18n="faq_title">Frequently asked questions</h1>
 
     <div class="space-y-4">
-      {faqs.map((item) => (
+      {faqs.map((item, i) => (
         <details class="border border-line rounded-2xl p-5 group">
           <summary class="font-medium text-indigo cursor-pointer list-none flex justify-between items-center">
-            {item.q}
+            <span data-i18n={`faq_q_${i}`}>{item.q}</span>
             <span class="text-ink/40 group-open:rotate-45 transition-transform text-xl">+</span>
           </summary>
-          <p class="text-sm text-ink/70 mt-3 leading-relaxed">{item.a}</p>
+          <p class="text-sm text-ink/70 mt-3 leading-relaxed" data-i18n={`faq_a_${i}`}>{item.a}</p>
         </details>
       ))}
     </div>
 
     <div class="border border-line rounded-2xl p-8 mt-12 bg-indigo/5">
-      <h2 class="font-display text-lg text-indigo mb-3">Still have a question?</h2>
+      <h2 class="font-display text-lg text-indigo mb-3" data-i18n="faq_still_question">Still have a question?</h2>
       <div class="flex flex-wrap gap-3">
-        <a href="/learn/open-account-guide" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors">
+        <a href="/learn/open-account-guide" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors" data-i18n="faq_doc_checklist">
           Document checklist for opening an account
         </a>
-        <a href="/contact" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+        <a href="/contact" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors" data-i18n="faq_ask_directly">
           Ask directly
         </a>
       </div>

@@ -18,6 +18,9 @@ const fundTypes = [
   ["Gold", "Tracks gold", "Medium", "5+ years", "Inflation hedge"],
   ["International", "Invests abroad", "Med–High", "5+ years", "Global diversification"],
   ["Sector/Thematic", "Specific industries", "Very High", "7+ years", "Experienced investors"],
+  ["Shariah / Ethical", "Screened for Shariah compliance or ESG criteria", "Med–High", "5+ years", "Values-based investors"],
+  ["Retirement", "Built for long-horizon retirement corpus building", "Medium", "10+ years", "Retirement planning"],
+  ["Children's Education", "Structured around a child's education timeline", "Medium", "10-18 years", "Education goal planning"],
 ];
 
 const mixes = [
@@ -75,6 +78,11 @@ const mixes = [
       ))}
     </div>
 
+    <h2 class="font-display text-2xl text-indigo mb-2">See the actual top funds, by category</h2>
+    <p class="text-sm text-ink/60 mb-4">Pulled from this week's real data — pick a category, see the top 3 by trailing return, and jump straight into a side-by-side comparison.</p>
+    <div id="top-fund-chips" class="flex flex-wrap gap-2 mb-4"></div>
+    <div id="top-fund-results" class="border border-line rounded-2xl divide-y divide-line mb-12"></div>
+
     <h2 class="font-display text-2xl text-indigo mb-4">Rules of thumb</h2>
     <ul class="text-ink/70 space-y-2 mb-12 list-disc list-inside">
       <li>Keep 2–5 mutual funds only — more than that adds complexity without much extra diversification.</li>
@@ -102,4 +110,69 @@ const mixes = [
       </div>
     </div>
   </section>
+
+  <script>
+    import { getFundsProgressive, getCategories, topFundsByReturn, fundReturn, type FundRecord } from "../../lib/fundData";
+
+    let allFunds: FundRecord[] = [];
+
+    const QUICK_CHIPS: { label: string; categories: string[]; shariahOnly?: boolean }[] = [
+      { label: "Large Cap", categories: ["Large Cap"] },
+      { label: "Flexi Cap", categories: ["Flexi Cap"] },
+      { label: "Small Cap", categories: ["Small Cap"] },
+      { label: "ELSS (Tax Saving)", categories: ["ELSS"] },
+      { label: "Shariah / Ethical", categories: ["Equity - Index", "Sectoral & Thematic", "Large Cap", "Flexi Cap"], shariahOnly: true },
+      { label: "Retirement", categories: ["Retirement Planning"] },
+      { label: "Children's Education", categories: ["Childrens Fund"] },
+      { label: "Liquid (Emergency Fund)", categories: ["Liquid Funds - Growth"] },
+    ];
+
+    function renderChips() {
+      const wrap = document.getElementById("top-fund-chips")!;
+      wrap.innerHTML = QUICK_CHIPS.map(
+        (c, i) => `<button type="button" data-idx="${i}" class="chip-btn px-4 py-2 rounded-full text-sm font-medium border border-line hover:border-indigo transition-colors">${c.label}</button>`
+      ).join("");
+      wrap.querySelectorAll<HTMLButtonElement>(".chip-btn").forEach((btn) => {
+        btn.addEventListener("click", () => showTopFunds(QUICK_CHIPS[Number(btn.dataset.idx)]));
+      });
+    }
+
+    function showTopFunds(chip: { label: string; categories: string[]; shariahOnly?: boolean }) {
+      const results = document.getElementById("top-fund-results")!;
+      let funds = topFundsByReturn(allFunds, chip.categories, chip.shariahOnly ? 30 : 3);
+      if (chip.shariahOnly) {
+        funds = funds.filter((f) => /shariah|ethical|esg/i.test(f.schemeName ?? "")).slice(0, 3);
+      }
+
+      if (!funds.length) {
+        results.innerHTML = `<div class="p-4 text-sm text-ink/40">No fund data uploaded yet, or none found for "${chip.label}" this week.</div>`;
+        return;
+      }
+
+      results.innerHTML = funds
+        .map((f) => {
+          const ret = fundReturn(f);
+          const params = new URLSearchParams({ cat: f.category, fund: f.isin ?? f.schemeName });
+          return `
+          <div class="p-4 flex items-center justify-between gap-4">
+            <div>
+              <p class="font-medium text-indigo text-sm">${f.schemeName}</p>
+              <p class="text-xs text-ink/45">${f.category}${ret !== null ? ` · ${ret.toFixed(1)}% CAGR` : ""}</p>
+            </div>
+            <a href="/calculators/compare?${params.toString()}" class="text-xs font-medium text-indigo underline shrink-0">Compare this fund →</a>
+          </div>`;
+        })
+        .join("");
+    }
+
+    async function init() {
+      renderChips();
+      getFundsProgressive(
+        (firstBatch) => { allFunds = firstBatch; },
+        (fullData) => { allFunds = fullData; }
+      );
+    }
+
+    init();
+  </script>
 </Layout>
