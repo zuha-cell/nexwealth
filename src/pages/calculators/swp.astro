@@ -1,0 +1,71 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="SWP Calculator" description="See how long your corpus lasts with a Systematic Withdrawal Plan.">
+  <section class="max-w-2xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">SWP Calculator</h1>
+    <p class="text-ink/65 mb-8">See how long a lumpsum lasts if you withdraw a fixed amount every month.</p>
+
+    <div class="grid gap-6 bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Starting corpus (₹)</span>
+        <input type="number" id="corpus" value="2000000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Monthly withdrawal (₹)</span>
+        <input type="number" id="withdrawal" value="15000" min="0" step="500" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Expected annual return (%)</span>
+        <input type="number" id="rate" value="8" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-4 mb-6">
+      <div class="border border-line rounded-2xl p-6 bg-indigo">
+        <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Corpus lasts approximately</p>
+        <p id="duration-result" class="font-mono text-xl text-paper">—</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Total withdrawn over that time</p>
+        <p id="total-result" class="font-mono text-xl text-indigo">₹0</p>
+      </div>
+    </div>
+    <p id="perpetual-note" class="text-xs text-ink/45"></p>
+  </section>
+
+  <script>
+    function fmtINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+    function calculate() {
+      let corpus = Number((document.getElementById("corpus") as HTMLInputElement).value) || 0;
+      const withdrawal = Number((document.getElementById("withdrawal") as HTMLInputElement).value) || 0;
+      const rate = Number((document.getElementById("rate") as HTMLInputElement).value) || 0;
+      const monthlyRate = rate / 100 / 12;
+
+      let months = 0;
+      const maxMonths = 1200; // 100 years cap, to avoid an infinite loop if withdrawal < growth
+      while (corpus > 0 && months < maxMonths) {
+        corpus = corpus * (1 + monthlyRate) - withdrawal;
+        months++;
+      }
+
+      const note = document.getElementById("perpetual-note")!;
+      if (months >= maxMonths) {
+        document.getElementById("duration-result")!.textContent = "100+ years";
+        note.textContent = "At this withdrawal rate, growth roughly keeps pace with withdrawals — the corpus may not run out within a realistic lifetime, though this isn't guaranteed if returns vary.";
+      } else {
+        const years = Math.floor(months / 12);
+        const remMonths = months % 12;
+        document.getElementById("duration-result")!.textContent = `${years}y ${remMonths}mo`;
+        note.textContent = "";
+      }
+      document.getElementById("total-result")!.textContent = fmtINR(withdrawal * Math.min(months, maxMonths));
+    }
+    document.querySelectorAll("input").forEach((el) => el.addEventListener("input", calculate));
+    calculate();
+  </script>
+</Layout>

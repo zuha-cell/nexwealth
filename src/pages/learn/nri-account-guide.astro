@@ -38,14 +38,19 @@ const tradingRules = [
 
 <Layout title="NRI Account Opening Guide" description="Documents and trading rules for NRIs opening a demat and trading account.">
   <section class="max-w-3xl mx-auto px-6 py-16">
-    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">For NRIs</p>
-    <h1 class="font-display text-4xl text-indigo mb-6">NRI account opening guide</h1>
-    <p class="text-ink/70 leading-relaxed mb-10">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3" data-i18n="nri_badge">For NRIs</p>
+    <h1 class="font-display text-4xl text-indigo mb-6" data-i18n="nri_title">NRI account opening guide</h1>
+    <p class="text-ink/70 leading-relaxed mb-4" data-i18n="nri_intro">
       NRI accounts follow a few extra rules under FEMA and RBI regulations —
       here's what you'll need and what to expect once your account is open.
     </p>
+    <p class="text-xs text-ink/45 mb-10" data-i18n="nri_technical_note">
+      The document checklist, trading rules, and bank charges below are kept in
+      English for regulatory precision — these involve exact FEMA/RBI/SEBI
+      terminology where a translation slip could cause real confusion.
+    </p>
 
-    <h2 class="font-display text-2xl text-indigo mb-4">Documents checklist</h2>
+    <h2 class="font-display text-2xl text-indigo mb-4" data-i18n="nri_docs_heading">Documents checklist</h2>
     <div class="grid gap-3 mb-6">
       {nriDocs.map((doc, i) => (
         <div class="border border-line rounded-2xl p-4 flex gap-3">
@@ -78,7 +83,7 @@ const tradingRules = [
       alone is enough.
     </p>
 
-    <h2 class="font-display text-2xl text-indigo mb-4">Trading rules for NRIs</h2>
+    <h2 class="font-display text-2xl text-indigo mb-4" data-i18n="nri_rules_heading">Trading rules for NRIs</h2>
     <ul class="space-y-3 mb-12">
       {tradingRules.map((rule) => (
         <li class="flex gap-3 text-sm text-ink/70">
@@ -88,8 +93,8 @@ const tradingRules = [
       ))}
     </ul>
 
-    <h2 class="font-display text-2xl text-indigo mb-2">PIS bank charges compared</h2>
-    <p class="text-sm text-ink/60 mb-4">You'll need a PIS (Portfolio Investment Scheme) account with one of these banks — charges vary meaningfully, so worth comparing before you pick one. All figures in ₹, plus applicable GST.</p>
+    <h2 class="font-display text-2xl text-indigo mb-2" data-i18n="nri_charges_heading">PIS bank charges compared</h2>
+    <p class="text-sm text-ink/60 mb-4" data-i18n="nri_charges_desc">You'll need a PIS (Portfolio Investment Scheme) account with one of these banks — charges vary meaningfully, so worth comparing before you pick one. All figures in ₹, plus applicable GST.</p>
     <div class="border border-line rounded-2xl overflow-x-auto mb-4">
       <table class="w-full text-xs">
         <thead class="bg-indigo/5 text-left">
@@ -119,36 +124,36 @@ const tradingRules = [
         </tbody>
       </table>
     </div>
-    <p class="text-xs text-ink/45 mb-10">All charges above are exclusive of GST.</p>
+    <p class="text-xs text-ink/45 mb-10" data-i18n="nri_gst_note">All charges above are exclusive of GST.</p>
 
-    <h2 class="font-display text-2xl text-indigo mb-2">TDS on sale proceeds</h2>
-    <p class="text-sm text-ink/60 mb-4">Banks deduct TDS on your sale proceeds automatically — here's the effective rate:</p>
+    <h2 class="font-display text-2xl text-indigo mb-2" data-i18n="nri_tds_heading">TDS on sale proceeds</h2>
+    <p class="text-sm text-ink/60 mb-4" data-i18n="nri_tds_desc">Banks deduct TDS on your sale proceeds automatically — here's the effective rate:</p>
     <div class="grid sm:grid-cols-2 gap-4 mb-12">
       <div class="border border-line rounded-2xl p-5">
-        <h3 class="font-medium text-indigo mb-2 text-sm">Short-Term Capital Gains</h3>
+        <h3 class="font-medium text-indigo mb-2 text-sm" data-i18n="nri_stcg">Short-Term Capital Gains</h3>
         <p class="text-xs text-ink/60">Basic 20% + Surcharge 15% + Cess 4%</p>
         <p class="font-mono text-2xl text-indigo mt-2">23.92%</p>
       </div>
       <div class="border border-line rounded-2xl p-5">
-        <h3 class="font-medium text-indigo mb-2 text-sm">Long-Term Capital Gains</h3>
+        <h3 class="font-medium text-indigo mb-2 text-sm" data-i18n="nri_ltcg">Long-Term Capital Gains</h3>
         <p class="text-xs text-ink/60">Basic 12.5% + Surcharge 15% + Cess 4%</p>
         <p class="font-mono text-2xl text-indigo mt-2">14.95%</p>
       </div>
     </div>
-    <p class="text-xs text-ink/45 mb-12">For further clarification on TDS rates, coordinate with your PIS bank directly — rates and surcharge slabs can change.</p>
+    <p class="text-xs text-ink/45 mb-12" data-i18n="nri_tds_footnote">For further clarification on TDS rates, coordinate with your PIS bank directly — rates and surcharge slabs can change.</p>
 
     <div class="border border-line rounded-2xl p-8 bg-indigo/5">
-      <h2 class="font-display text-xl text-indigo mb-3">Ready to open your NRI account?</h2>
-      <p class="text-sm text-ink/70 mb-5">
+      <h2 class="font-display text-xl text-indigo mb-3" data-i18n="nri_cta_heading">Ready to open your NRI account?</h2>
+      <p class="text-sm text-ink/70 mb-5" data-i18n="nri_cta_desc">
         I can walk you through the process directly — every NRI account has
         a few details specific to your country of residence and bank, so
         it's worth a quick conversation before you start.
       </p>
       <div class="flex flex-wrap gap-3">
-        <a href="/contact" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+        <a href="/contact" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors" data-i18n="nri_cta_btn1">
           Get in touch
         </a>
-        <a href="mailto:md_zuhair.owner@bp.sharekhan.com" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors">
+        <a href="mailto:md_zuhair.owner@bp.sharekhan.com" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors" data-i18n="nri_cta_btn2">
           Email directly
         </a>
       </div>

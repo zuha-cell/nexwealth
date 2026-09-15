@@ -1,0 +1,80 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Emergency Fund Calculator" description="Find your target emergency fund size and see real liquid fund options.">
+  <section class="max-w-2xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">Emergency Fund Calculator</h1>
+    <p class="text-ink/65 mb-8">A common rule: keep 3–6 months of expenses somewhere safe and instantly accessible, before investing aggressively elsewhere.</p>
+
+    <div class="grid gap-6 bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Monthly expenses (₹)</span>
+        <input type="number" id="expenses" value="40000" min="0" step="1000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-sm font-medium">Months of cover</span>
+          <span id="months-label" class="font-mono text-sm text-indigo">6 months</span>
+        </div>
+        <input type="range" id="months" min="3" max="12" step="1" value="6" class="w-full" />
+      </div>
+    </div>
+
+    <div class="border border-line rounded-2xl p-8 bg-indigo mb-10">
+      <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Target emergency fund</p>
+      <p id="target-result" class="font-mono text-2xl text-paper">₹0</p>
+    </div>
+
+    <h2 class="font-display text-xl text-indigo mb-2">Where to keep it: real Liquid Fund options</h2>
+    <p id="data-status" class="text-xs text-ink/45 mb-4">Loading fund data...</p>
+    <div id="fund-suggestions" class="border border-line rounded-2xl divide-y divide-line"></div>
+  </section>
+
+  <script>
+    import { getFundsProgressive, topFundsByReturn, fundReturn, type FundRecord } from "../../lib/fundData";
+
+    let allFunds: FundRecord[] = [];
+
+    function fmtINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+
+    function calculate() {
+      const expenses = Number((document.getElementById("expenses") as HTMLInputElement).value) || 0;
+      const months = Number((document.getElementById("months") as HTMLInputElement).value) || 0;
+      document.getElementById("months-label")!.textContent = `${months} months`;
+      document.getElementById("target-result")!.textContent = fmtINR(expenses * months);
+    }
+
+    function renderSuggestions() {
+      const wrap = document.getElementById("fund-suggestions")!;
+      const funds = topFundsByReturn(allFunds, ["Liquid Funds - Growth"], 5);
+      if (!funds.length) {
+        wrap.innerHTML = `<div class="p-4 text-sm text-ink/40">No fund data uploaded yet.</div>`;
+        return;
+      }
+      wrap.innerHTML = funds
+        .map((f) => {
+          const ret = fundReturn(f);
+          return `<div class="p-4 flex justify-between">
+            <p class="font-medium text-indigo text-sm">${f.schemeName}</p>
+            <p class="text-xs text-ink/45">${ret !== null ? `${ret.toFixed(1)}% CAGR` : ""}</p>
+          </div>`;
+        })
+        .join("");
+    }
+
+    async function init() {
+      const statusEl = document.getElementById("data-status")!;
+      getFundsProgressive(
+        (firstBatch) => { allFunds = firstBatch; statusEl.textContent = `${allFunds.length} funds so far...`; renderSuggestions(); },
+        (fullData) => { allFunds = fullData; statusEl.textContent = allFunds.length ? `Using ${allFunds.length} real funds.` : "No fund data uploaded yet."; renderSuggestions(); }
+      );
+      document.querySelectorAll("input").forEach((el) => el.addEventListener("input", calculate));
+      calculate();
+    }
+    init();
+  </script>
+</Layout>

@@ -35,25 +35,26 @@ const mixes = [
 
 <Layout title="Complete Mutual Fund Guide for Beginners" description="Every mutual fund type explained — risk, duration, and sample portfolio mixes.">
   <section class="max-w-4xl mx-auto px-6 py-16">
-    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Learning Centre</p>
-    <h1 class="font-display text-4xl text-indigo mb-6">Complete Mutual Fund Guide for Beginners</h1>
-    <p class="text-ink/70 leading-relaxed mb-10">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3" data-i18n="mfg_badge">Learning Centre</p>
+    <h1 class="font-display text-4xl text-indigo mb-6" data-i18n="mfg_title">Complete Mutual Fund Guide for Beginners</h1>
+    <p class="text-ink/70 leading-relaxed mb-10" data-i18n="mfg_intro">
       Mutual funds aren't one thing — they're dozens of different tools built
       for different jobs. This guide walks through the main types, how risky
       each one is, how long you should plan to hold it, and a few ready-made
       portfolio mixes to start from.
     </p>
 
-    <h2 class="font-display text-2xl text-indigo mb-4">Fund types at a glance</h2>
+    <h2 class="font-display text-2xl text-indigo mb-4" data-i18n="mfg_types_heading">Fund types at a glance</h2>
+    <p class="text-xs text-ink/45 mb-4" data-i18n="mfg_types_note">Fund category names are kept in English below, since these are standard industry terms used across Indian languages.</p>
     <div class="border border-line rounded-2xl overflow-x-auto mb-12">
       <table class="w-full text-sm">
         <thead class="bg-indigo/5 text-left">
           <tr>
-            <th class="px-4 py-3">Type</th>
-            <th class="px-4 py-3">What it does</th>
-            <th class="px-4 py-3">Risk</th>
-            <th class="px-4 py-3">Ideal duration</th>
-            <th class="px-4 py-3">Suited for</th>
+            <th class="px-4 py-3" data-i18n="mfg_col_type">Type</th>
+            <th class="px-4 py-3" data-i18n="mfg_col_does">What it does</th>
+            <th class="px-4 py-3" data-i18n="mfg_col_risk">Risk</th>
+            <th class="px-4 py-3" data-i18n="mfg_col_duration">Ideal duration</th>
+            <th class="px-4 py-3" data-i18n="mfg_col_suited">Suited for</th>
           </tr>
         </thead>
         <tbody>
@@ -68,7 +69,7 @@ const mixes = [
       </table>
     </div>
 
-    <h2 class="font-display text-2xl text-indigo mb-4">Sample portfolio mixes</h2>
+    <h2 class="font-display text-2xl text-indigo mb-4" data-i18n="mfg_mixes_heading">Sample portfolio mixes</h2>
     <div class="grid sm:grid-cols-2 gap-4 mb-12">
       {mixes.map((m) => (
         <div class="border border-line rounded-2xl p-5">
@@ -78,33 +79,33 @@ const mixes = [
       ))}
     </div>
 
-    <h2 class="font-display text-2xl text-indigo mb-2">See the actual top funds, by category</h2>
-    <p class="text-sm text-ink/60 mb-4">Pulled from this week's real data — pick a category, see the top 3 by trailing return, and jump straight into a side-by-side comparison.</p>
+    <h2 class="font-display text-2xl text-indigo mb-2" data-i18n="mfg_topfunds_heading">See the actual top funds, by category</h2>
+    <p class="text-sm text-ink/60 mb-4" data-i18n="mfg_topfunds_desc">Pulled from this week's real data — pick a category, see the top 3 by trailing return, and jump straight into a side-by-side comparison.</p>
     <div id="top-fund-chips" class="flex flex-wrap gap-2 mb-4"></div>
     <div id="top-fund-results" class="border border-line rounded-2xl divide-y divide-line mb-12"></div>
 
-    <h2 class="font-display text-2xl text-indigo mb-4">Rules of thumb</h2>
+    <h2 class="font-display text-2xl text-indigo mb-4" data-i18n="mfg_rules_heading">Rules of thumb</h2>
     <ul class="text-ink/70 space-y-2 mb-12 list-disc list-inside">
-      <li>Keep 2–5 mutual funds only — more than that adds complexity without much extra diversification.</li>
-      <li>SIP monthly and stay invested through the ups and downs.</li>
-      <li>Increase your SIP amount by 10–15% every year as income grows.</li>
-      <li>A common equity-allocation rule of thumb: <strong>100 (or 120) minus your age</strong>, depending on your risk tolerance.</li>
-      <li>Review and rebalance your portfolio about once a year.</li>
-      <li>Keep 3–6 months of expenses in a Liquid Fund or savings account before investing aggressively.</li>
+      <li data-i18n="mfg_rule_1">Keep 2–5 mutual funds only — more than that adds complexity without much extra diversification.</li>
+      <li data-i18n="mfg_rule_2">SIP monthly and stay invested through the ups and downs.</li>
+      <li data-i18n="mfg_rule_3">Increase your SIP amount by 10–15% every year as income grows.</li>
+      <li data-i18n="mfg_rule_4">A common equity-allocation rule of thumb: <strong>100 (or 120) minus your age</strong>, depending on your risk tolerance.</li>
+      <li data-i18n="mfg_rule_5">Review and rebalance your portfolio about once a year.</li>
+      <li data-i18n="mfg_rule_6">Keep 3–6 months of expenses in a Liquid Fund or savings account before investing aggressively.</li>
     </ul>
 
     <div class="border border-line rounded-2xl p-8 bg-indigo/5">
-      <h2 class="font-display text-xl text-indigo mb-3">See what this looks like with real numbers</h2>
-      <p class="text-sm text-ink/70 mb-5">
+      <h2 class="font-display text-xl text-indigo mb-3" data-i18n="mfg_cta_heading">See what this looks like with real numbers</h2>
+      <p class="text-sm text-ink/70 mb-5" data-i18n="mfg_cta_desc">
         The Savings &amp; Investment Calculator applies these exact portfolio
         mixes to this week's real fund data — pick a mix and see the
         projected return.
       </p>
       <div class="flex flex-wrap gap-3">
-        <a href="/calculators/savings-investment" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+        <a href="/calculators/savings-investment" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors" data-i18n="mfg_cta_btn1">
           Try the calculator
         </a>
-        <a href="/resources" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors">
+        <a href="/resources" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors" data-i18n="mfg_cta_btn2">
           Ready to invest? Open an account
         </a>
       </div>

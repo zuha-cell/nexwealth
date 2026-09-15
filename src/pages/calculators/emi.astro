@@ -1,0 +1,61 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="EMI Calculator" description="Calculate your loan EMI, total interest, and total payment.">
+  <section class="max-w-2xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">EMI Calculator</h1>
+    <p class="text-ink/65 mb-8">Work out your monthly EMI for any loan — home, car, personal.</p>
+
+    <div class="grid gap-6 bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Loan amount (₹)</span>
+        <input type="number" id="principal" value="2000000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Annual interest rate (%)</span>
+        <input type="number" id="rate" value="8.5" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Tenure (years)</span>
+        <input type="number" id="tenure" value="20" min="1" max="30" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-4">
+      <div class="border border-line rounded-2xl p-6 bg-indigo">
+        <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Monthly EMI</p>
+        <p id="emi-result" class="font-mono text-xl text-paper">₹0</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Total interest</p>
+        <p id="interest-result" class="font-mono text-xl text-loss">₹0</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Total payment</p>
+        <p id="total-result" class="font-mono text-xl text-indigo">₹0</p>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function fmtINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+    function calculate() {
+      const principal = Number((document.getElementById("principal") as HTMLInputElement).value) || 0;
+      const rate = Number((document.getElementById("rate") as HTMLInputElement).value) || 0;
+      const tenure = Number((document.getElementById("tenure") as HTMLInputElement).value) || 0;
+      const i = rate / 100 / 12;
+      const n = tenure * 12;
+      const emi = i === 0 ? principal / n : (principal * i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1);
+      const total = emi * n;
+      document.getElementById("emi-result")!.textContent = fmtINR(emi);
+      document.getElementById("interest-result")!.textContent = fmtINR(total - principal);
+      document.getElementById("total-result")!.textContent = fmtINR(total);
+    }
+    document.querySelectorAll("input").forEach((el) => el.addEventListener("input", calculate));
+    calculate();
+  </script>
+</Layout>

@@ -1,0 +1,52 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Blog Post">
+  <section class="max-w-2xl mx-auto px-6 py-16">
+    <a href="/blog" class="text-sm text-indigo underline mb-8 inline-block">← Back to Blog</a>
+    <p id="loading" class="text-sm text-ink/50">Loading...</p>
+    <article id="post-content" class="hidden">
+      <h1 id="post-title" class="font-display text-4xl text-indigo mb-6"></h1>
+      <div id="post-body" class="text-ink/70 leading-relaxed space-y-4"></div>
+    </article>
+  </section>
+
+  <script>
+    import { db } from "../../lib/firebase";
+    import { collection, getDocs, query, where } from "firebase/firestore";
+
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const slug = params.get("slug");
+      const loading = document.getElementById("loading")!;
+
+      if (!slug) {
+        loading.textContent = "No post specified.";
+        return;
+      }
+
+      try {
+        const snap = await getDocs(query(collection(db, "blogPosts"), where("slug", "==", slug), where("published", "==", true)));
+        if (snap.empty) {
+          loading.textContent = "Post not found.";
+          return;
+        }
+        const post = snap.docs[0].data();
+        document.title = `${post.title} · NEXWEALTH`;
+        document.getElementById("post-title")!.textContent = post.title;
+        const body = document.getElementById("post-body")!;
+        body.innerHTML = (post.content as string)
+          .split(/\n\s*\n/)
+          .map((para) => `<p>${para.replace(/\n/g, "<br/>")}</p>`)
+          .join("");
+
+        loading.classList.add("hidden");
+        document.getElementById("post-content")!.classList.remove("hidden");
+      } catch {
+        loading.textContent = "Couldn't load this post right now.";
+      }
+    }
+    init();
+  </script>
+</Layout>

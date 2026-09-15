@@ -1,0 +1,107 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Admin — DipEngine Watchlist" description="Update stock price data for the informational drawdown tracker.">
+  <section class="max-w-3xl mx-auto px-6 py-16">
+    <p id="auth-check" class="text-sm text-ink/50">Checking login...</p>
+
+    <div id="panel" class="hidden">
+      <h1 class="font-display text-2xl text-indigo mb-2">DipEngine Watchlist</h1>
+      <p class="text-sm text-ink/60 mb-6">
+        Purely informational — this shows how far below its 52-week high a
+        stock currently sits. No buy/sell signals, no targets, no timing
+        calls. Update the current price whenever you check it (e.g. weekly).
+      </p>
+
+      <div id="stock-list" class="space-y-3 mb-6"></div>
+
+      <button id="add-stock" type="button" class="text-sm text-indigo underline mb-6">+ Add a stock</button>
+
+      <button id="save-watchlist" class="block bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+        Save watchlist
+      </button>
+      <p id="save-status" class="text-xs text-gain mt-3"></p>
+    </div>
+  </section>
+
+  <script>
+    import { auth, db } from "../../lib/firebase";
+    import { onAuthStateChanged } from "firebase/auth";
+    import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+
+    interface Stock { symbol: string; name: string; high52w: number; currentPrice: number }
+    let stocks: Stock[] = [];
+
+    function renderList() {
+      const wrap = document.getElementById("stock-list")!;
+      wrap.innerHTML = stocks
+        .map(
+          (s, i) => `
+        <div class="border border-line rounded-xl p-4 grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
+          <label class="text-xs">Symbol
+            <input data-i="${i}" data-field="symbol" value="${s.symbol}" class="stock-input border border-line rounded px-2 py-1 w-full text-sm" />
+          </label>
+          <label class="text-xs">Name
+            <input data-i="${i}" data-field="name" value="${s.name}" class="stock-input border border-line rounded px-2 py-1 w-full text-sm" />
+          </label>
+          <label class="text-xs">52-Wk High (₹)
+            <input data-i="${i}" data-field="high52w" type="number" value="${s.high52w}" class="stock-input border border-line rounded px-2 py-1 w-full text-sm" />
+          </label>
+          <label class="text-xs">Current Price (₹)
+            <input data-i="${i}" data-field="currentPrice" type="number" value="${s.currentPrice}" class="stock-input border border-line rounded px-2 py-1 w-full text-sm" />
+          </label>
+          <button data-i="${i}" class="remove-stock text-xs text-loss underline">Remove</button>
+        </div>`
+        )
+        .join("");
+
+      wrap.querySelectorAll<HTMLInputElement>(".stock-input").forEach((el) => {
+        el.addEventListener("input", () => {
+          const i = Number(el.dataset.i);
+          const field = el.dataset.field as keyof Stock;
+          (stocks[i] as any)[field] = field === "high52w" || field === "currentPrice" ? Number(el.value) : el.value;
+        });
+      });
+      wrap.querySelectorAll<HTMLButtonElement>(".remove-stock").forEach((el) => {
+        el.addEventListener("click", () => {
+          stocks.splice(Number(el.dataset.i), 1);
+          renderList();
+        });
+      });
+    }
+
+    document.getElementById("add-stock")?.addEventListener("click", () => {
+      stocks.push({ symbol: "", name: "", high52w: 0, currentPrice: 0 });
+      renderList();
+    });
+
+    document.getElementById("save-watchlist")?.addEventListener("click", async () => {
+      const status = document.getElementById("save-status")!;
+      try {
+        await setDoc(doc(db, "settings", "dipEngineWatchlist"), { stocks, updatedAt: serverTimestamp() });
+        status.textContent = "Saved.";
+        setTimeout(() => (status.textContent = ""), 2500);
+      } catch {
+        status.textContent = "Failed to save.";
+        status.className = "text-xs text-loss mt-3";
+      }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      const authCheck = document.getElementById("auth-check")!;
+      const panel = document.getElementById("panel")!;
+      if (!user) {
+        window.location.href = "/admin";
+        return;
+      }
+      authCheck.classList.add("hidden");
+      panel.classList.remove("hidden");
+      try {
+        const snap = await getDoc(doc(db, "settings", "dipEngineWatchlist"));
+        if (snap.exists()) stocks = snap.data().stocks ?? [];
+      } catch {}
+      renderList();
+    });
+  </script>
+</Layout>

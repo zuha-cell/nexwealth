@@ -2,16 +2,59 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="Coming Soon">
-  <section class="max-w-2xl mx-auto px-6 py-24 text-center">
-    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Coming soon</p>
-    <h1 class="font-display text-3xl text-indigo mb-4">This section is still being built.</h1>
-    <p class="text-ink/65 mb-8">
-      In the meantime, check out the Learning Centre and Calculators — those
-      are live and ready to use.
-    </p>
-    <a href="/" class="inline-block bg-indigo text-paper px-6 py-3 rounded-full font-medium hover:bg-indigoLight transition-colors">
-      Back to Home
-    </a>
+<Layout title="Video Library" description="Short video explainers on investing, calculators, and money basics.">
+  <section class="max-w-5xl mx-auto px-6 py-16">
+    <h1 class="font-display text-4xl text-indigo mb-3">Video Library</h1>
+    <p class="text-ink/65 mb-10">Short explainers you can actually finish.</p>
+
+    <p id="data-status" class="text-xs text-ink/45 mb-4">Loading videos...</p>
+    <div id="video-grid" class="grid sm:grid-cols-2 gap-6"></div>
   </section>
+
+  <script>
+    import { db } from "../lib/firebase";
+    import { collection, getDocs, query, orderBy } from "firebase/firestore";
+
+    interface Video { title: string; youtubeId: string; description: string }
+
+    async function init() {
+      const statusEl = document.getElementById("data-status")!;
+      const grid = document.getElementById("video-grid")!;
+      try {
+        const snap = await getDocs(query(collection(db, "videos"), orderBy("createdAt", "desc")));
+        const videos = snap.docs.map((d) => d.data() as Video);
+
+        if (!videos.length) {
+          statusEl.textContent = "No videos added yet — check back soon.";
+          return;
+        }
+        statusEl.textContent = "";
+
+        grid.innerHTML = videos
+          .map(
+            (v) => `
+          <div class="border border-line rounded-2xl overflow-hidden">
+            <div class="aspect-video">
+              <iframe
+                class="w-full h-full"
+                src="https://www.youtube.com/embed/${v.youtubeId}"
+                title="${v.title}"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+              ></iframe>
+            </div>
+            <div class="p-4">
+              <h3 class="font-medium text-indigo text-sm mb-1">${v.title}</h3>
+              <p class="text-xs text-ink/60">${v.description}</p>
+            </div>
+          </div>`
+          )
+          .join("");
+      } catch {
+        statusEl.textContent = "Couldn't load videos right now.";
+      }
+    }
+    init();
+  </script>
 </Layout>
