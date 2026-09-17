@@ -25,7 +25,7 @@ import Layout from "../../layouts/Layout.astro";
   </section>
 
   <script>
-    import { db } from "../lib/firebase";
+    import { db } from "../../lib/firebase";
     import { doc, getDoc } from "firebase/firestore";
 
     interface Stock { symbol: string; name: string; high52w: number; currentPrice: number }
