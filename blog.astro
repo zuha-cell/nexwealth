@@ -1,0 +1,182 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Admin — Blog Posts">
+  <section class="max-w-4xl mx-auto px-6 py-16">
+    <p id="auth-check" class="text-sm text-ink/50">Checking login...</p>
+
+    <div id="panel" class="hidden">
+      <h1 class="font-display text-2xl text-indigo mb-6">Blog Posts</h1>
+
+      <div class="border border-line rounded-2xl p-6 mb-8">
+        <h2 class="font-display text-lg text-indigo mb-4" id="form-heading">New post</h2>
+        <input type="hidden" id="edit-id" value="" />
+        <div class="grid gap-4">
+          <label class="grid gap-1">
+            <span class="text-xs font-medium text-ink/60">Title</span>
+            <input id="post-title" type="text" class="border border-line rounded-lg px-3 py-2" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-xs font-medium text-ink/60">URL slug (letters, numbers, hyphens only)</span>
+            <input id="post-slug" type="text" class="border border-line rounded-lg px-3 py-2 font-mono text-sm" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-xs font-medium text-ink/60">Excerpt (shown on the blog list)</span>
+            <textarea id="post-excerpt" rows="2" class="border border-line rounded-lg px-3 py-2"></textarea>
+          </label>
+          <label class="grid gap-1">
+            <span class="text-xs font-medium text-ink/60">Content (plain text / basic paragraphs, one blank line = new paragraph)</span>
+            <textarea id="post-content" rows="10" class="border border-line rounded-lg px-3 py-2"></textarea>
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="post-published" checked />
+            Published (visible on the public blog)
+          </label>
+        </div>
+        <div class="flex gap-3 mt-4">
+          <button id="save-post" class="bg-indigo text-paper px-5 py-2 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">Save post</button>
+          <button id="cancel-edit" class="hidden text-sm text-ink/50 underline">Cancel edit</button>
+        </div>
+        <p id="save-status" class="text-xs text-gain mt-3"></p>
+      </div>
+
+      <h2 class="font-display text-lg text-indigo mb-4">All posts</h2>
+      <div id="post-list" class="border border-line rounded-2xl divide-y divide-line"></div>
+    </div>
+  </section>
+
+  <script>
+    import { auth, db } from "../../lib/firebase";
+    import { onAuthStateChanged } from "firebase/auth";
+    import { collection, getDocs, doc, setDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+
+    interface Post { id: string; title: string; slug: string; excerpt: string; content: string; published: boolean }
+    let posts: Post[] = [];
+
+    function slugify(text: string) {
+      return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    }
+
+    function clearForm() {
+      (document.getElementById("edit-id") as HTMLInputElement).value = "";
+      (document.getElementById("post-title") as HTMLInputElement).value = "";
+      (document.getElementById("post-slug") as HTMLInputElement).value = "";
+      (document.getElementById("post-excerpt") as HTMLTextAreaElement).value = "";
+      (document.getElementById("post-content") as HTMLTextAreaElement).value = "";
+      (document.getElementById("post-published") as HTMLInputElement).checked = true;
+      document.getElementById("form-heading")!.textContent = "New post";
+      document.getElementById("cancel-edit")!.classList.add("hidden");
+    }
+
+    function loadForEdit(post: Post) {
+      (document.getElementById("edit-id") as HTMLInputElement).value = post.id;
+      (document.getElementById("post-title") as HTMLInputElement).value = post.title;
+      (document.getElementById("post-slug") as HTMLInputElement).value = post.slug;
+      (document.getElementById("post-excerpt") as HTMLTextAreaElement).value = post.excerpt;
+      (document.getElementById("post-content") as HTMLTextAreaElement).value = post.content;
+      (document.getElementById("post-published") as HTMLInputElement).checked = post.published;
+      document.getElementById("form-heading")!.textContent = "Edit post";
+      document.getElementById("cancel-edit")!.classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function renderList() {
+      const wrap = document.getElementById("post-list")!;
+      if (!posts.length) {
+        wrap.innerHTML = `<div class="p-4 text-sm text-ink/40">No posts yet.</div>`;
+        return;
+      }
+      wrap.innerHTML = posts
+        .map(
+          (p) => `
+        <div class="p-4 flex items-center justify-between gap-4">
+          <div>
+            <p class="font-medium text-indigo text-sm">${p.title} ${p.published ? "" : '<span class="text-xs text-loss">(draft)</span>'}</p>
+            <p class="text-xs text-ink/45">/blog/post?slug=${p.slug}</p>
+          </div>
+          <div class="flex gap-3 shrink-0">
+            <button data-id="${p.id}" class="edit-post text-xs text-indigo underline">Edit</button>
+            <button data-id="${p.id}" class="delete-post text-xs text-loss underline">Delete</button>
+          </div>
+        </div>`
+        )
+        .join("");
+
+      wrap.querySelectorAll<HTMLButtonElement>(".edit-post").forEach((el) => {
+        el.addEventListener("click", () => {
+          const post = posts.find((p) => p.id === el.dataset.id);
+          if (post) loadForEdit(post);
+        });
+      });
+      wrap.querySelectorAll<HTMLButtonElement>(".delete-post").forEach((el) => {
+        el.addEventListener("click", async () => {
+          if (!confirm("Delete this post permanently?")) return;
+          await deleteDoc(doc(db, "blogPosts", el.dataset.id!));
+          await loadPosts();
+        });
+      });
+    }
+
+    async function loadPosts() {
+      const snap = await getDocs(query(collection(db, "blogPosts"), orderBy("createdAt", "desc")));
+      posts = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post));
+      renderList();
+    }
+
+    document.getElementById("post-title")?.addEventListener("input", () => {
+      const slugField = document.getElementById("post-slug") as HTMLInputElement;
+      if (!slugField.dataset.manuallyEdited) {
+        slugField.value = slugify((document.getElementById("post-title") as HTMLInputElement).value);
+      }
+    });
+    document.getElementById("post-slug")?.addEventListener("input", (e) => {
+      (e.target as HTMLInputElement).dataset.manuallyEdited = "true";
+    });
+
+    document.getElementById("save-post")?.addEventListener("click", async () => {
+      const status = document.getElementById("save-status")!;
+      const id = (document.getElementById("edit-id") as HTMLInputElement).value;
+      const title = (document.getElementById("post-title") as HTMLInputElement).value.trim();
+      const slug = slugify((document.getElementById("post-slug") as HTMLInputElement).value);
+      const excerpt = (document.getElementById("post-excerpt") as HTMLTextAreaElement).value.trim();
+      const content = (document.getElementById("post-content") as HTMLTextAreaElement).value.trim();
+      const published = (document.getElementById("post-published") as HTMLInputElement).checked;
+
+      if (!title || !slug || !content) {
+        status.textContent = "Title, slug, and content are required.";
+        status.className = "text-xs text-loss mt-3";
+        return;
+      }
+
+      try {
+        const docId = id || slug;
+        await setDoc(doc(db, "blogPosts", docId), {
+          title, slug, excerpt, content, published,
+          createdAt: serverTimestamp(),
+        }, { merge: true });
+        status.textContent = "Saved.";
+        status.className = "text-xs text-gain mt-3";
+        clearForm();
+        await loadPosts();
+      } catch (err) {
+        status.textContent = "Failed to save.";
+        status.className = "text-xs text-loss mt-3";
+      }
+    });
+
+    document.getElementById("cancel-edit")?.addEventListener("click", clearForm);
+
+    onAuthStateChanged(auth, async (user) => {
+      const authCheck = document.getElementById("auth-check")!;
+      const panel = document.getElementById("panel")!;
+      if (!user) {
+        window.location.href = "/admin";
+        return;
+      }
+      authCheck.classList.add("hidden");
+      panel.classList.remove("hidden");
+      await loadPosts();
+    });
+  </script>
+</Layout>

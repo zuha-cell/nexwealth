@@ -1,0 +1,73 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="NPS Calculator" description="Estimate your National Pension System corpus at retirement.">
+  <section class="max-w-2xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">NPS Calculator</h1>
+    <p class="text-ink/65 mb-2">National Pension System — regulated by PFRDA, mixes equity and debt, with mandatory partial annuitization at exit.</p>
+    <p class="text-xs text-ink/45 mb-8">NPS withdrawal rules (currently: 60% lump sum tax-free, 40% must buy an annuity) are set by PFRDA and can change — verify current rules before relying on this.</p>
+
+    <div class="grid gap-6 bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Current age</span>
+        <input type="number" id="current-age" value="30" min="18" max="59" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Monthly contribution (₹)</span>
+        <input type="number" id="monthly" value="5000" min="0" step="500" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Expected annual return (%)</span>
+        <input type="number" id="rate" value="10" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Assumed annuity rate at exit (%)</span>
+        <input type="number" id="annuity-rate" value="6" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-4 mb-4">
+      <div class="border border-line rounded-2xl p-6 bg-indigo">
+        <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Corpus at 60</p>
+        <p id="corpus-result" class="font-mono text-xl text-paper">₹0</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Tax-free lump sum (60%)</p>
+        <p id="lumpsum-result" class="font-mono text-xl text-gain">₹0</p>
+      </div>
+    </div>
+    <div class="border border-line rounded-2xl p-6 mb-8">
+      <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Annuity corpus (40%) → estimated monthly pension</p>
+      <p id="pension-result" class="font-mono text-xl text-indigo">₹0</p>
+    </div>
+  </section>
+
+  <script>
+    function fmtINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+    function calculate() {
+      const currentAge = Number((document.getElementById("current-age") as HTMLInputElement).value) || 0;
+      const monthly = Number((document.getElementById("monthly") as HTMLInputElement).value) || 0;
+      const rate = Number((document.getElementById("rate") as HTMLInputElement).value) || 0;
+      const annuityRate = Number((document.getElementById("annuity-rate") as HTMLInputElement).value) || 0;
+
+      const years = Math.max(0, 60 - currentAge);
+      const i = rate / 100 / 12;
+      const n = years * 12;
+      const corpus = i === 0 ? monthly * n : monthly * ((Math.pow(1 + i, n) - 1) / i) * (1 + i);
+
+      const lumpsum = corpus * 0.6;
+      const annuityCorpus = corpus * 0.4;
+      const monthlyPension = (annuityCorpus * (annuityRate / 100)) / 12;
+
+      document.getElementById("corpus-result")!.textContent = fmtINR(corpus);
+      document.getElementById("lumpsum-result")!.textContent = fmtINR(lumpsum);
+      document.getElementById("pension-result")!.textContent = fmtINR(monthlyPension) + " / month";
+    }
+    document.querySelectorAll("input").forEach((el) => el.addEventListener("input", calculate));
+    calculate();
+  </script>
+</Layout>

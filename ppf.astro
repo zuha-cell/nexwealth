@@ -1,0 +1,64 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="PPF Calculator" description="Calculate your Public Provident Fund maturity value.">
+  <section class="max-w-2xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">PPF Calculator</h1>
+    <p class="text-ink/65 mb-2">Public Provident Fund — government-backed, tax-free, 15-year lock-in (extendable in 5-year blocks).</p>
+    <p class="text-xs text-ink/45 mb-8">Rate is editable — PPF's rate is set by the government quarterly, so check the current rate before relying on this.</p>
+
+    <div class="grid gap-6 bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Yearly investment (₹, max ₹1,50,000)</span>
+        <input type="number" id="yearly" value="150000" min="0" max="150000" step="500" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Current PPF interest rate (%)</span>
+        <input type="number" id="rate" value="7.1" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Tenure (years, minimum 15)</span>
+        <input type="number" id="tenure" value="15" min="15" max="50" step="5" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-4">
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Total invested</p>
+        <p id="invested-result" class="font-mono text-xl text-indigo">₹0</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Interest earned</p>
+        <p id="interest-result" class="font-mono text-xl text-gain">₹0</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6 bg-indigo">
+        <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Maturity value</p>
+        <p id="maturity-result" class="font-mono text-xl text-paper">₹0</p>
+      </div>
+    </div>
+    <p class="mt-8 text-xs text-ink/45">PPF interest compounds annually. Fully tax-exempt under EEE status (contribution, growth, and withdrawal all tax-free) as of common current rules — verify against the latest Income Tax Act provisions.</p>
+  </section>
+
+  <script>
+    function fmtINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+    function calculate() {
+      const yearly = Number((document.getElementById("yearly") as HTMLInputElement).value) || 0;
+      const rate = Number((document.getElementById("rate") as HTMLInputElement).value) || 0;
+      const tenure = Number((document.getElementById("tenure") as HTMLInputElement).value) || 0;
+      let balance = 0;
+      for (let y = 0; y < tenure; y++) {
+        balance = (balance + yearly) * (1 + rate / 100);
+      }
+      const invested = yearly * tenure;
+      document.getElementById("invested-result")!.textContent = fmtINR(invested);
+      document.getElementById("interest-result")!.textContent = fmtINR(balance - invested);
+      document.getElementById("maturity-result")!.textContent = fmtINR(balance);
+    }
+    document.querySelectorAll("input").forEach((el) => el.addEventListener("input", calculate));
+    calculate();
+  </script>
+</Layout>

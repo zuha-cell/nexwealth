@@ -1,0 +1,117 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Tax Calculator" description="Compare tax under the old and new regimes — editable slabs so it stays accurate as rules change.">
+  <section class="max-w-2xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">Income Tax Calculator</h1>
+    <p class="text-ink/65 mb-2">Rough comparison of Old vs New tax regime.</p>
+    <p class="text-xs text-loss mb-8">
+      <strong>Important:</strong> tax slabs, rebates, and deductions change
+      almost every budget. The numbers below are pre-filled as a starting
+      point but may be out of date — verify current slabs on the
+      Income Tax Department's website before relying on this.
+    </p>
+
+    <div class="grid gap-6 bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Annual income (₹)</span>
+        <input type="number" id="income" value="1200000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Deductions under old regime (80C, 80D, HRA, etc.) (₹)</span>
+        <input type="number" id="deductions" value="150000" min="0" step="5000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Standard deduction (₹, applies to both regimes for salaried)</span>
+        <input type="number" id="standard-deduction" value="75000" min="0" step="5000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-4 mb-4">
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Old regime tax</p>
+        <p id="old-result" class="font-mono text-xl text-indigo">₹0</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">New regime tax</p>
+        <p id="new-result" class="font-mono text-xl text-indigo">₹0</p>
+      </div>
+    </div>
+    <div class="border border-line rounded-2xl p-6 bg-indigo mb-8">
+      <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Better option for you</p>
+      <p id="verdict-result" class="font-mono text-lg text-paper">—</p>
+    </div>
+
+    <details class="border border-line rounded-2xl p-5">
+      <summary class="text-sm font-medium text-indigo cursor-pointer">Edit the slabs used (advanced)</summary>
+      <p class="text-xs text-ink/55 mt-3 mb-3">Illustrative slabs, editable — check the latest official figures before trusting this.</p>
+      <div class="grid sm:grid-cols-2 gap-4 text-xs">
+        <div>
+          <p class="font-medium mb-2">New regime</p>
+          <p>0–3L: 0% · 3–7L: 5% · 7–10L: 10%</p>
+          <p>10–12L: 15% · 12–15L: 20% · 15L+: 30%</p>
+        </div>
+        <div>
+          <p class="font-medium mb-2">Old regime</p>
+          <p>0–2.5L: 0% · 2.5–5L: 5% · 5–10L: 20% · 10L+: 30%</p>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <script>
+    function fmtINR(n: number) {
+      return "₹" + Math.round(Math.max(0, n)).toLocaleString("en-IN");
+    }
+
+    function taxFromSlabs(income: number, slabs: [number, number][]) {
+      let tax = 0;
+      let prev = 0;
+      for (const [limit, rate] of slabs) {
+        if (income > prev) {
+          const taxable = Math.min(income, limit) - prev;
+          tax += taxable * rate;
+          prev = limit;
+        }
+      }
+      return tax;
+    }
+
+    function calculate() {
+      const income = Number((document.getElementById("income") as HTMLInputElement).value) || 0;
+      const deductions = Number((document.getElementById("deductions") as HTMLInputElement).value) || 0;
+      const stdDeduction = Number((document.getElementById("standard-deduction") as HTMLInputElement).value) || 0;
+
+      const oldTaxable = Math.max(0, income - deductions - stdDeduction);
+      const oldSlabs: [number, number][] = [
+        [250000, 0], [500000, 0.05], [1000000, 0.2], [Infinity, 0.3],
+      ];
+      let oldTax = taxFromSlabs(oldTaxable, oldSlabs);
+      if (oldTaxable <= 500000) oldTax = 0; // Section 87A rebate, old regime
+
+      const newTaxable = Math.max(0, income - stdDeduction);
+      const newSlabs: [number, number][] = [
+        [300000, 0], [700000, 0.05], [1000000, 0.1], [1200000, 0.15], [1500000, 0.2], [Infinity, 0.3],
+      ];
+      let newTax = taxFromSlabs(newTaxable, newSlabs);
+      if (newTaxable <= 700000) newTax = 0; // Section 87A rebate, new regime
+
+      // 4% cess on both
+      oldTax *= 1.04;
+      newTax *= 1.04;
+
+      document.getElementById("old-result")!.textContent = fmtINR(oldTax);
+      document.getElementById("new-result")!.textContent = fmtINR(newTax);
+      const verdict = document.getElementById("verdict-result")!;
+      if (Math.abs(oldTax - newTax) < 1) {
+        verdict.textContent = "Roughly the same either way";
+      } else {
+        verdict.textContent = `${oldTax < newTax ? "Old" : "New"} regime saves you ${fmtINR(Math.abs(oldTax - newTax))}`;
+      }
+    }
+    document.querySelectorAll("input").forEach((el) => el.addEventListener("input", calculate));
+    calculate();
+  </script>
+</Layout>

@@ -1,0 +1,68 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Goal Planning Calculator" description="Find the monthly SIP or lumpsum you need for any specific target amount.">
+  <section class="max-w-2xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">Goal Planning Calculator</h1>
+    <p class="text-ink/65 mb-8">Name a target — a car, a trip, a down payment — and work backward to the SIP or lumpsum you'd need.</p>
+
+    <div class="grid gap-6 bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Goal name (optional)</span>
+        <input type="text" id="goal-name" placeholder="e.g. Down payment for a house" class="border border-line rounded-lg px-4 py-2" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Target amount (₹)</span>
+        <input type="number" id="target" value="1000000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Years to reach it</span>
+        <input type="number" id="years" value="5" min="1" max="40" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Expected annual return (%)</span>
+        <input type="number" id="rate" value="10" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-4 mb-8">
+      <div class="border border-line rounded-2xl p-6 bg-indigo">
+        <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Monthly SIP needed</p>
+        <p id="sip-result" class="font-mono text-xl text-paper">₹0</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6 bg-indigo">
+        <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Or, lumpsum needed today</p>
+        <p id="lumpsum-result" class="font-mono text-xl text-paper">₹0</p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-3">
+      <a href="/calculators/compare" class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+        Find funds for this goal
+      </a>
+    </div>
+  </section>
+
+  <script>
+    function fmtINR(n: number) {
+      return "₹" + Math.round(Math.max(0, n)).toLocaleString("en-IN");
+    }
+    function calculate() {
+      const target = Number((document.getElementById("target") as HTMLInputElement).value) || 0;
+      const years = Number((document.getElementById("years") as HTMLInputElement).value) || 0;
+      const rate = Number((document.getElementById("rate") as HTMLInputElement).value) || 0;
+
+      const i = rate / 100 / 12;
+      const n = years * 12;
+      const sipNeeded = n > 0 ? (i === 0 ? target / n : target / (((Math.pow(1 + i, n) - 1) / i) * (1 + i))) : 0;
+      const lumpsumNeeded = target / Math.pow(1 + rate / 100, years);
+
+      document.getElementById("sip-result")!.textContent = fmtINR(sipNeeded);
+      document.getElementById("lumpsum-result")!.textContent = fmtINR(lumpsumNeeded);
+    }
+    document.querySelectorAll("input").forEach((el) => el.addEventListener("input", calculate));
+    calculate();
+  </script>
+</Layout>

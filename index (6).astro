@@ -1,0 +1,62 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const modules = [
+  { key: "learn", href: "/learn" },
+  { key: "videos", href: "/videos" },
+  { key: "calc", href: "/calculators" },
+  { key: "compare", href: "/calculators/compare" },
+  { key: "resources", href: "/resources" },
+  { key: "blog", href: "/blog" },
+];
+---
+
+<Layout title="Plan Today. Prosper Tomorrow.">
+  <!-- Hero: an ascending growth line is the literal subject of this platform (compounding),
+       so it earns its place as the signature visual rather than decoration. -->
+  <section class="relative overflow-hidden">
+    <svg
+      class="absolute inset-x-0 bottom-0 w-full h-40 md:h-56 text-gold/25"
+      viewBox="0 0 1200 200"
+      preserveAspectRatio="none"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M0 180 C 150 170, 250 150, 350 140 S 550 90, 650 95 S 850 40, 950 45 S 1100 10, 1200 5 L1200 200 L0 200 Z"
+        fill="currentColor"
+      />
+    </svg>
+    <div class="max-w-6xl mx-auto px-6 pt-20 pb-32 relative">
+      <p class="font-mono text-xs tracking-widest uppercase text-gold mb-4" data-i18n="home_badge">Educational · Unbiased · Free</p>
+      <h1 class="font-display text-5xl md:text-6xl leading-[1.05] text-indigo max-w-2xl">
+        <span data-i18n="home_h1_line1">Plan today.</span><br /><span data-i18n="home_h1_line2">Prosper tomorrow.</span>
+      </h1>
+      <p class="mt-6 text-lg text-ink/70 max-w-xl" data-i18n="home_subtitle">
+        Simple, unbiased financial education and practical tools — calculators,
+        comparisons, and guides, without the sales pitch.
+      </p>
+      <div class="mt-8 flex gap-4">
+        <a href="/calculators" class="bg-indigo text-paper px-6 py-3 rounded-full font-medium hover:bg-indigoLight transition-colors" data-i18n="home_cta_calc">
+          Try a calculator
+        </a>
+        <a href="/learn" class="border border-line px-6 py-3 rounded-full font-medium hover:border-indigo transition-colors" data-i18n="home_cta_learn">
+          Start learning
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Module overview -->
+  <section class="max-w-6xl mx-auto px-6 py-16">
+    <h2 class="font-display text-2xl text-indigo mb-8" data-i18n="home_modules_title">Everything in one place</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {modules.map((m) => (
+        <a href={m.href} class="block border border-line rounded-2xl p-6 hover:border-indigo transition-colors">
+          <h3 class="font-display text-lg text-indigo mb-2" data-i18n={`mod_${m.key}_name`}>{m.key}</h3>
+          <p class="text-sm text-ink/65" data-i18n={`mod_${m.key}_desc`}>{m.key}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+</Layout>
