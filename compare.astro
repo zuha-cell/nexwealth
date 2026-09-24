@@ -1,0 +1,603 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Compare: Savings vs FD vs Mutual Funds" description="Compare savings, FD, and up to 3 mutual funds side by side — SIP and lumpsum, against inflation.">
+  <section class="max-w-6xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">See what your money could become</h1>
+    <p class="text-ink/65 mb-4">
+      Savings, FD, Slice, and up to 3 real mutual funds — side by side,
+      SIP and lumpsum together, so you can see exactly why time in the
+      market matters, then pick your mix and get started.
+    </p>
+    <p id="data-status" class="text-xs text-ink/45 mb-8">Loading fund data...</p>
+
+    <!-- Objective wizard -->
+    <div class="border-2 border-gold/40 rounded-2xl p-6 mb-8 bg-gold/5">
+      <h2 class="font-display text-lg text-indigo mb-1">What are you investing for?</h2>
+      <p class="text-xs text-ink/55 mb-4">Pick a goal and your age — we'll suggest a starting fund mix. You can always change it below.</p>
+      <div class="grid sm:grid-cols-4 gap-3 mb-4">
+        <select id="objective-select" class="border border-line rounded-lg px-3 py-2 text-sm bg-white">
+          <option value="">Choose a goal...</option>
+          <option value="wealth">Wealth Creation</option>
+          <option value="retirement">Retirement</option>
+          <option value="marriage">Marriage</option>
+          <option value="education">Children's Education</option>
+          <option value="crash">Beat the Market / Crash-Resistant</option>
+        </select>
+        <input id="objective-age" type="number" min="18" max="75" placeholder="Your age" class="border border-line rounded-lg px-3 py-2 text-sm font-mono" />
+        <select id="objective-mix" class="border border-line rounded-lg px-3 py-2 text-sm bg-white">
+          <option value="single">Single best fund</option>
+          <option value="mix">Mix of funds</option>
+        </select>
+        <button id="objective-suggest" type="button" class="bg-indigo text-paper px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigoLight transition-colors">
+          Suggest funds
+        </button>
+      </div>
+      <label class="flex items-center gap-2 text-xs text-ink/60 mb-2">
+        <input type="checkbox" id="shariah-only" />
+        Shariah / Ethical funds only (applies everywhere below)
+      </label>
+      <p id="objective-note" class="text-xs text-ink/60"></p>
+    </div>
+
+    <!-- Amounts: SIP and Lumpsum both, shown together -->
+    <div class="border border-line rounded-2xl p-6 mb-8">
+      <p class="text-sm font-medium mb-3">Compare using:</p>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="border border-line rounded-xl p-4">
+          <label class="flex items-center gap-2 mb-2">
+            <input type="checkbox" id="show-sip" checked />
+            <span class="text-sm font-medium">SIP — Monthly amount (₹)</span>
+          </label>
+          <input type="number" id="sip-amount" value="5000" min="0" step="100" class="border border-line rounded-lg px-3 py-2 font-mono text-sm w-full" />
+        </div>
+        <div class="border border-line rounded-xl p-4">
+          <label class="flex items-center gap-2 mb-2">
+            <input type="checkbox" id="show-lumpsum" checked />
+            <span class="text-sm font-medium">Lumpsum — One-time amount (₹)</span>
+          </label>
+          <input type="number" id="lumpsum-amount" value="100000" min="0" step="1000" class="border border-line rounded-lg px-3 py-2 font-mono text-sm w-full" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Period: years + months -->
+    <div class="border border-line rounded-2xl p-6 mb-8">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sm font-medium">Projection period</span>
+        <div class="flex items-center gap-2">
+          <input type="number" id="years-input" min="0" max="20" step="1" value="6" class="border border-line rounded px-2 py-1 font-mono text-sm w-14 text-right" />
+          <span class="text-xs text-ink/40">yrs</span>
+          <input type="number" id="months-input" min="0" max="11" step="1" value="0" class="border border-line rounded px-2 py-1 font-mono text-sm w-14 text-right" />
+          <span class="text-xs text-ink/40">mo</span>
+        </div>
+      </div>
+      <input type="range" id="years-slider" min="0" max="20" step="1" value="6" class="w-full" />
+      <p class="text-xs text-ink/40 mt-2">
+        Fund returns use the actual 5Yr CAGR as the assumed constant rate,
+        projected out to whichever period you set (years + months). The
+        slider adjusts years; use the months field for finer control.
+      </p>
+    </div>
+
+    <!-- Comparison grid -->
+    <div id="comparison-grid" class="grid gap-4 mb-8" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));"></div>
+
+    <button id="add-fund-btn" class="text-sm font-medium text-indigo underline mb-12">+ Add another fund to compare (up to 3)</button>
+
+    <!-- Growth chart -->
+    <div class="border border-line rounded-2xl p-6 mb-12">
+      <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+        <h2 class="font-display text-lg text-indigo">Growth over time</h2>
+        <div class="flex gap-2">
+          <button type="button" id="chart-mode-sip" class="px-3 py-1.5 rounded-full text-xs font-medium border border-line">Chart: SIP</button>
+          <button type="button" id="chart-mode-lumpsum" class="px-3 py-1.5 rounded-full text-xs font-medium border border-line">Chart: Lumpsum</button>
+        </div>
+        <div id="chart-legend" class="flex flex-wrap gap-3 text-xs w-full"></div>
+      </div>
+      <svg id="growth-chart" viewBox="0 0 760 340" class="w-full h-auto"></svg>
+    </div>
+
+    <div class="border border-line rounded-2xl p-8 bg-indigo/5 mb-8">
+      <h2 class="font-display text-xl text-indigo mb-3">See the gap? That's what time in the market does.</h2>
+      <p class="text-sm text-ink/70 mb-5">
+        The bigger the difference between the lines above, the more it's
+        costing you to stay only in savings. Ready to close that gap?
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <a href="https://diy.sharekhan.com/app/Account/RegisterFOS?grpcd=13977&type=pb&grpid=14427&utm_empcode=PB13977USER&FormType=CDSL&CustomerType=FOS"
+          target="_blank" rel="noopener noreferrer sponsored"
+          class="bg-indigo text-paper px-5 py-2.5 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">
+          Open a Sharekhan account
+        </a>
+        <a href="/contact" class="border border-line px-5 py-2.5 rounded-full text-sm font-medium hover:border-indigo transition-colors">
+          Have questions first? Contact me
+        </a>
+      </div>
+    </div>
+
+    <p class="text-xs text-ink/45">
+      Savings, FD, and Slice rates are editable to match your actual
+      account. Mutual fund figures use this week's real fund data.
+      Estimates assume the historical rate holds constant — not
+      guaranteed. Inflation figure is admin-set from the latest MoSPI CPI
+      release, not a personalized forecast.
+    </p>
+  </section>
+
+  <script>
+    import { getFundsProgressive, getCategories, fundsInCategory, fundReturnForPeriod, topFundsByReturn, averageReturn, fundReturn, type FundRecord } from "../../lib/fundData";
+    import { db } from "../../lib/firebase";
+    import { doc, getDoc } from "firebase/firestore";
+
+    let allFunds: FundRecord[] = [];
+    let years = 6;
+    let months = 0;
+    let inflationRate = 5.5;
+    let shariahOnly = false;
+    let showSip = true;
+    let showLumpsum = true;
+    let chartMode: "sip" | "lumpsum" = "sip";
+
+    const SHARIAH_ALL = "__shariah_all__"; // sentinel category value meaning "search all categories for Shariah/Ethical names"
+
+    interface FundSlot { category: string; fundId: string }
+    let fundSlots: FundSlot[] = [{ category: "", fundId: "" }];
+
+    let savingsRate = 3.5;
+    let fdRate = 7;
+    let sliceRate = 6.5;
+
+    const COLORS = {
+      savings: "#94a3b8",
+      fd: "#000000",
+      slice: "#EC4899",
+      nifty: "#1F7A5C",
+      fund: ["#C79A45", "#7A3B8E", "#387ED1"],
+    };
+
+    const OBJECTIVE_CATEGORIES: Record<string, string[]> = {
+      wealth: ["Flexi Cap", "Multi Cap", "Large Cap"],
+      retirement: ["Retirement Planning", "Equity - Index", "Conservative Hybrid"],
+      marriage: ["Aggressive Hybrid", "Balanced Hybrid", "Multi Asset Alloaction"],
+      education: ["Childrens Fund", "Flexi Cap", "Balanced Hybrid"],
+      crash: ["Dynamic Asst Allocation&Bal Adv", "Multi Asset Alloaction", "Conservative Hybrid"],
+    };
+
+    function fmtINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+    function fmtINRCompact(n: number) {
+      if (n >= 10000000) return "₹" + (n / 10000000).toFixed(1) + "Cr";
+      if (n >= 100000) return "₹" + (n / 100000).toFixed(1) + "L";
+      if (n >= 1000) return "₹" + (n / 1000).toFixed(0) + "K";
+      return "₹" + Math.round(n);
+    }
+
+    function totalMonths() {
+      return years * 12 + months;
+    }
+    function totalYearsFrac() {
+      return totalMonths() / 12;
+    }
+
+    function futureValueLumpsum(amount: number, ratePct: number) {
+      return amount * Math.pow(1 + ratePct / 100, totalYearsFrac());
+    }
+    function futureValueSIP(monthly: number, ratePct: number) {
+      const i = ratePct / 100 / 12;
+      const n = totalMonths();
+      if (n === 0) return 0;
+      if (i === 0) return monthly * n;
+      return monthly * ((Math.pow(1 + i, n) - 1) / i) * (1 + i);
+    }
+
+    function referralFor(kind: "savings" | "fd" | "slice" | "fund") {
+      if (kind === "savings") return { label: "Open Kotak811 zero-balance account", href: "https://h1e.in/kkjhZD" };
+      if (kind === "fd") return { label: "Explore Stable Money", href: "https://stablemoney.onelink.me/rkWL/z5jw05ze" };
+      if (kind === "slice") return { label: "Get Slice — ₹500 on first payment", href: "https://slice.bank.in/t?c=ztOt0Fe&ic=MUHAM54154" };
+      return {
+        label: "Open Sharekhan account",
+        href: "https://diy.sharekhan.com/app/Account/RegisterFOS?grpcd=13977&type=pb&grpid=14427&utm_empcode=PB13977USER&FormType=CDSL&CustomerType=FOS",
+      };
+    }
+
+    function barHeight(value: number, maxValue: number) {
+      return maxValue > 0 ? Math.max(6, (value / maxValue) * 100) : 6;
+    }
+
+    function isShariah(f: FundRecord) {
+      return /shariah|ethical|esg/i.test(f.schemeName ?? "");
+    }
+
+    function fundsForCategory(category: string): FundRecord[] {
+      if (category === SHARIAH_ALL) return allFunds.filter(isShariah);
+      let funds = fundsInCategory(allFunds, category);
+      if (shariahOnly) funds = funds.filter(isShariah);
+      return funds;
+    }
+
+    function resultLines(ratePct: number): { sipVal: number; lumpVal: number } {
+      return {
+        sipVal: showSip ? futureValueSIP(Number((document.getElementById("sip-amount") as HTMLInputElement).value) || 0, ratePct) : 0,
+        lumpVal: showLumpsum ? futureValueLumpsum(Number((document.getElementById("lumpsum-amount") as HTMLInputElement).value) || 0, ratePct) : 0,
+      };
+    }
+
+    function renderResultBlock(ratePct: number): string {
+      const { sipVal, lumpVal } = resultLines(ratePct);
+      const beatsInflation = ratePct - inflationRate;
+      const colorClass = beatsInflation > 1 ? "text-gain" : beatsInflation < -1 ? "text-loss" : "text-ink/60";
+      const badgeClass = beatsInflation > 1 ? "bg-gain/10 text-gain" : beatsInflation < -1 ? "bg-loss/10 text-loss" : "bg-ink/5 text-ink/50";
+      let rows = "";
+      if (showSip) {
+        const sipAmount = Number((document.getElementById("sip-amount") as HTMLInputElement).value) || 0;
+        const invested = sipAmount * totalMonths();
+        const gain = sipVal - invested;
+        rows += `<div class="flex justify-between text-xs"><span class="text-ink/50">SIP →</span><span class="font-mono ${colorClass}">${fmtINR(sipVal)} (+${fmtINR(gain)})</span></div>`;
+      }
+      if (showLumpsum) {
+        const lumpAmount = Number((document.getElementById("lumpsum-amount") as HTMLInputElement).value) || 0;
+        const gain = lumpVal - lumpAmount;
+        rows += `<div class="flex justify-between text-xs"><span class="text-ink/50">Lumpsum →</span><span class="font-mono ${colorClass}">${fmtINR(lumpVal)} (+${fmtINR(gain)})</span></div>`;
+      }
+      return `
+        <div class="space-y-1 mb-2">${rows}</div>
+        <span class="text-[10px] px-2 py-1 rounded-full self-start mb-3 inline-block ${badgeClass}">
+          ${beatsInflation > 1 ? `Beats inflation by ${beatsInflation.toFixed(1)}%` : beatsInflation < -1 ? `Below inflation by ${Math.abs(beatsInflation).toFixed(1)}%` : "Roughly tracks inflation"}
+        </span>`;
+    }
+
+    function renderFixedCard(name: string, sub: string, rateId: string, ratePct: number, kind: "savings" | "fd" | "slice", maxValue: number, barColor: string) {
+      const { sipVal, lumpVal } = resultLines(ratePct);
+      const total = Math.max(sipVal, lumpVal);
+      const heightPct = barHeight(total, maxValue);
+      const referral = referralFor(kind);
+
+      return `
+        <div class="border border-line rounded-2xl p-4 flex flex-col">
+          <div class="flex justify-between items-start mb-1">
+            <p class="font-medium text-indigo text-sm">${name}</p>
+            <div class="flex items-center gap-1">
+              <input type="number" id="${rateId}" value="${ratePct}" step="0.1" min="0" max="15" class="border border-line rounded px-1.5 py-0.5 font-mono text-xs w-14 text-right" />
+              <span class="text-[10px] text-ink/40">%</span>
+            </div>
+          </div>
+          <p class="text-xs text-ink/45 mb-3">${sub}</p>
+          <div class="flex items-end h-16 mb-3">
+            <div class="w-full rounded-t" style="height: ${heightPct}%; background:${barColor}"></div>
+          </div>
+          ${renderResultBlock(ratePct)}
+          <a href="${referral.href}" target="_blank" rel="noopener noreferrer sponsored" class="mt-auto text-xs font-medium text-indigo underline pt-2 border-t border-line">
+            ${referral.label} →
+          </a>
+        </div>`;
+    }
+
+    function renderFundCard(slotIndex: number) {
+      const slot = fundSlots[slotIndex];
+      const categories = getCategories(allFunds);
+      const catOptions = [
+        `<option value="${SHARIAH_ALL}" ${slot.category === SHARIAH_ALL ? "selected" : ""}>⭐ Shariah / Ethical (all categories)</option>`,
+        ...categories.map((c) => `<option value="${c}" ${c === slot.category ? "selected" : ""}>${c}</option>`),
+      ].join("");
+      const funds = slot.category ? fundsForCategory(slot.category) : [];
+      const fundOptions = funds
+        .map((f) => `<option value="${f.isin ?? f.schemeName}" ${(f.isin ?? f.schemeName) === slot.fundId ? "selected" : ""}>${f.schemeName}</option>`)
+        .join("");
+      const top3 = slot.category ? topFundsByReturn(funds.length ? funds : allFunds, slot.category === SHARIAH_ALL ? categories : [slot.category], 3).filter((f) => (slot.category === SHARIAH_ALL ? isShariah(f) : true)) : [];
+
+      const fund = allFunds.find((f) => (f.isin ?? f.schemeName) === slot.fundId && (slot.category === SHARIAH_ALL || f.category === slot.category));
+      const rate = fund ? fundReturnForPeriod(fund, 5) : null;
+
+      let resultHTML = `<div class="flex items-center justify-center text-xs text-ink/40 flex-1 py-6">Pick a category above — the top fund is auto-selected</div>`;
+      if (rate !== null && fund) {
+        const referral = referralFor("fund");
+        resultHTML = `${renderResultBlock(rate)}
+          <a href="${referral.href}" target="_blank" rel="noopener noreferrer sponsored" class="mt-auto text-xs font-medium text-indigo underline pt-2 border-t border-line">
+            ${referral.label} →
+          </a>`;
+      }
+
+      return `
+        <div class="border border-line rounded-2xl p-4 flex flex-col gap-2">
+          <p class="text-xs font-medium text-ink/60">Fund ${slotIndex + 1}</p>
+          <select data-slot="${slotIndex}" class="category-select border border-line rounded px-2 py-1.5 text-xs bg-white">
+            <option value="">Choose category...</option>
+            ${catOptions}
+          </select>
+          <select data-slot="${slotIndex}" class="fund-select border border-line rounded px-2 py-1.5 text-xs bg-white" ${!slot.category ? "disabled" : ""}>
+            <option value="">Choose fund...</option>
+            ${fundOptions}
+          </select>
+          ${top3.length ? `<div class="flex flex-wrap gap-1">${top3.map((f) => `<button type="button" data-slot="${slotIndex}" data-fund="${f.isin ?? f.schemeName}" class="quickpick-btn text-[10px] px-2 py-1 rounded-full border border-line hover:border-indigo">${f.schemeName.slice(0, 16)}...</button>`).join("")}</div>` : ""}
+          ${fund ? `<p class="text-xs text-indigo font-medium">${fund.schemeName} <span class="text-ink/40">(${rate?.toFixed(1)}% CAGR)</span></p>` : ""}
+          ${resultHTML}
+          ${slotIndex > 0 ? `<button data-slot="${slotIndex}" class="remove-slot text-xs text-loss underline self-start">Remove</button>` : ""}
+        </div>`;
+    }
+
+    function renderAll() {
+      const grid = document.getElementById("comparison-grid")!;
+
+      const values: number[] = [];
+      [savingsRate, fdRate, sliceRate].forEach((r) => {
+        const { sipVal, lumpVal } = resultLines(r);
+        values.push(sipVal, lumpVal);
+      });
+      fundSlots.forEach((slot) => {
+        const fund = allFunds.find((f) => (f.isin ?? f.schemeName) === slot.fundId && (slot.category === SHARIAH_ALL || f.category === slot.category));
+        if (fund) {
+          const rate = fundReturnForPeriod(fund, 5);
+          if (rate !== null) {
+            const { sipVal, lumpVal } = resultLines(rate);
+            values.push(sipVal, lumpVal);
+          }
+        }
+      });
+      const maxValue = Math.max(...values, 1);
+
+      let html = "";
+      html += renderFixedCard("Savings Account", "Zero-balance via Kotak811", "savings-rate", savingsRate, "savings", maxValue, COLORS.savings);
+      html += renderFixedCard("Fixed Deposit", "Editable rate", "fd-rate", fdRate, "fd", maxValue, COLORS.fd);
+      html += renderFixedCard("Slice Savings", "~100% of RBI repo rate, daily interest", "slice-rate", sliceRate, "slice", maxValue, COLORS.slice);
+
+      fundSlots.forEach((slot, i) => {
+        html += renderFundCard(i);
+      });
+
+      grid.innerHTML = html;
+      attachGridListeners();
+    }
+
+    function attachGridListeners() {
+      document.getElementById("savings-rate")?.addEventListener("input", (e) => {
+        savingsRate = Number((e.target as HTMLInputElement).value) || 0;
+        renderAll(); renderChart();
+      });
+      document.getElementById("fd-rate")?.addEventListener("input", (e) => {
+        fdRate = Number((e.target as HTMLInputElement).value) || 0;
+        renderAll(); renderChart();
+      });
+      document.getElementById("slice-rate")?.addEventListener("input", (e) => {
+        sliceRate = Number((e.target as HTMLInputElement).value) || 0;
+        renderAll(); renderChart();
+      });
+      document.querySelectorAll<HTMLSelectElement>(".category-select").forEach((el) => {
+        el.addEventListener("change", () => {
+          const i = Number(el.dataset.slot);
+          fundSlots[i].category = el.value;
+          // Auto-select the top (max-return) fund in this category, per your feedback.
+          const pool = fundsForCategory(el.value);
+          const top = topFundsByReturn(pool.length ? pool : allFunds, el.value === SHARIAH_ALL ? getCategories(allFunds) : [el.value], 1).filter((f) => (el.value === SHARIAH_ALL ? isShariah(f) : true))[0];
+          fundSlots[i].fundId = top ? (top.isin ?? top.schemeName) : "";
+          renderAll(); renderChart();
+        });
+      });
+      document.querySelectorAll<HTMLSelectElement>(".fund-select").forEach((el) => {
+        el.addEventListener("change", () => {
+          const i = Number(el.dataset.slot);
+          fundSlots[i].fundId = el.value;
+          renderAll(); renderChart();
+        });
+      });
+      document.querySelectorAll<HTMLButtonElement>(".quickpick-btn").forEach((el) => {
+        el.addEventListener("click", () => {
+          const i = Number(el.dataset.slot);
+          fundSlots[i].fundId = el.dataset.fund!;
+          renderAll(); renderChart();
+        });
+      });
+      document.querySelectorAll<HTMLButtonElement>(".remove-slot").forEach((el) => {
+        el.addEventListener("click", () => {
+          const i = Number(el.dataset.slot);
+          fundSlots.splice(i, 1);
+          renderAll(); renderChart();
+          updateAddButton();
+        });
+      });
+    }
+
+    function updateAddButton() {
+      const btn = document.getElementById("add-fund-btn")!;
+      btn.classList.toggle("hidden", fundSlots.length >= 3);
+    }
+
+    function renderChart() {
+      const svg = document.getElementById("growth-chart")!;
+      const legend = document.getElementById("chart-legend")!;
+      const sipAmount = Number((document.getElementById("sip-amount") as HTMLInputElement).value) || 0;
+      const lumpAmount = Number((document.getElementById("lumpsum-amount") as HTMLInputElement).value) || 0;
+      const W = 760, H = 340, PAD_L = 60, PAD_B = 40, PAD_T = 20, PAD_R = 20;
+      const totalMo = totalMonths();
+
+      const series: { name: string; rate: number; color: string }[] = [
+        { name: "Savings", rate: savingsRate, color: COLORS.savings },
+        { name: "FD", rate: fdRate, color: COLORS.fd },
+        { name: "Slice", rate: sliceRate, color: COLORS.slice },
+      ];
+      if (averageReturnCache !== null) series.push({ name: "Nifty/Index (avg)", rate: averageReturnCache, color: COLORS.nifty });
+      fundSlots.forEach((slot, i) => {
+        const fund = allFunds.find((f) => (f.isin ?? f.schemeName) === slot.fundId && (slot.category === SHARIAH_ALL || f.category === slot.category));
+        if (fund) {
+          const rate = fundReturnForPeriod(fund, 5);
+          if (rate !== null) series.push({ name: fund.schemeName.slice(0, 22), rate, color: COLORS.fund[i % COLORS.fund.length] });
+        }
+      });
+
+      const allValues: number[] = [];
+      const paths = series.map((s) => {
+        const points: [number, number][] = [];
+        for (let mo = 0; mo <= totalMo; mo += Math.max(1, Math.round(totalMo / 20))) {
+          const yrs = mo / 12;
+          const val = chartMode === "sip"
+            ? (() => { const i = s.rate / 100 / 12; return i === 0 ? sipAmount * mo : sipAmount * ((Math.pow(1 + i, mo) - 1) / i) * (1 + i); })()
+            : lumpAmount * Math.pow(1 + s.rate / 100, yrs);
+          points.push([mo, val]);
+          allValues.push(val);
+        }
+        return { ...s, points };
+      });
+      const maxVal = Math.max(...allValues, 1);
+
+      const x = (mo: number) => PAD_L + (totalMo > 0 ? mo / totalMo : 0) * (W - PAD_L - PAD_R);
+      const y = (val: number) => H - PAD_B - (val / maxVal) * (H - PAD_T - PAD_B);
+
+      let svgContent = "";
+      const ySteps = 5;
+      for (let i = 0; i <= ySteps; i++) {
+        const val = (maxVal / ySteps) * i;
+        const yPos = y(val);
+        svgContent += `<line x1="${PAD_L}" y1="${yPos.toFixed(1)}" x2="${W - PAD_R}" y2="${yPos.toFixed(1)}" stroke="#EEF0F2" />`;
+        svgContent += `<text x="${PAD_L - 8}" y="${(yPos + 3).toFixed(1)}" text-anchor="end" font-size="11" fill="#8A93A3">${fmtINRCompact(val)}</text>`;
+      }
+      const xStepMonths = totalMo > 96 ? 24 : totalMo > 36 ? 12 : 6;
+      for (let mo = 0; mo <= totalMo; mo += xStepMonths) {
+        const label = mo % 12 === 0 ? `Yr ${mo / 12}` : `${mo}mo`;
+        svgContent += `<text x="${x(mo).toFixed(1)}" y="${H - PAD_B + 18}" text-anchor="middle" font-size="11" fill="#8A93A3">${label}</text>`;
+      }
+      svgContent += `<line x1="${PAD_L}" y1="${H - PAD_B}" x2="${W - PAD_R}" y2="${H - PAD_B}" stroke="#B9C0CC" />`;
+      svgContent += `<line x1="${PAD_L}" y1="${PAD_T}" x2="${PAD_L}" y2="${H - PAD_B}" stroke="#B9C0CC" />`;
+      svgContent += `<text x="${(PAD_L + W - PAD_R) / 2}" y="${H - 4}" text-anchor="middle" font-size="11" fill="#5C6472">Time (${chartMode === "sip" ? "SIP" : "Lumpsum"})</text>`;
+      svgContent += `<text x="14" y="${(PAD_T + H - PAD_B) / 2}" text-anchor="middle" font-size="11" fill="#5C6472" transform="rotate(-90 14 ${(PAD_T + H - PAD_B) / 2})">Value (₹)</text>`;
+
+      for (const s of paths) {
+        const d = s.points.map(([mo, val], i) => `${i === 0 ? "M" : "L"} ${x(mo).toFixed(1)} ${y(val).toFixed(1)}`).join(" ");
+        svgContent += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" />`;
+      }
+      svg.innerHTML = svgContent;
+
+      legend.innerHTML = series
+        .map((s) => `<span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:${s.color}"></span>${s.name}</span>`)
+        .join("");
+    }
+
+    let averageReturnCache: number | null = null;
+
+    function setPeriod() {
+      const yearsInput = document.getElementById("years-input") as HTMLInputElement;
+      const monthsInput = document.getElementById("months-input") as HTMLInputElement;
+      const slider = document.getElementById("years-slider") as HTMLInputElement;
+      years = Math.max(0, Math.min(20, Number(yearsInput.value) || 0));
+      months = Math.max(0, Math.min(11, Number(monthsInput.value) || 0));
+      if (document.activeElement !== slider) slider.value = String(years);
+      renderAll(); renderChart();
+    }
+
+    function suggestFunds() {
+      const objective = (document.getElementById("objective-select") as HTMLSelectElement).value;
+      const age = Number((document.getElementById("objective-age") as HTMLInputElement).value);
+      const wantsMix = (document.getElementById("objective-mix") as HTMLSelectElement).value === "mix";
+      const note = document.getElementById("objective-note")!;
+
+      if (!objective) {
+        note.textContent = "Pick a goal above first.";
+        note.className = "text-xs text-loss";
+        return;
+      }
+
+      const categories = OBJECTIVE_CATEGORIES[objective] ?? [];
+      const picks: FundSlot[] = [];
+      const wantedCount = wantsMix ? Math.min(3, categories.length) : 1;
+
+      for (const cat of categories) {
+        if (picks.length >= wantedCount) break;
+        const pool = fundsForCategory(cat);
+        const top = topFundsByReturn(pool.length ? pool : allFunds, [cat], 1)[0];
+        if (top) picks.push({ category: cat, fundId: top.isin ?? top.schemeName });
+      }
+
+      if (picks.length === 0) {
+        note.textContent = "No matching fund data found yet — try uploading this week's data via /admin/upload, or pick funds manually below.";
+        note.className = "text-xs text-loss";
+        return;
+      }
+
+      fundSlots = picks;
+      renderAll(); renderChart();
+      updateAddButton();
+
+      const ageNote = age ? ` At age ${age}, this leans toward your risk profile using the standard equity-allocation rule of thumb.` : "";
+      note.textContent = `Suggested ${picks.length > 1 ? "mix" : "fund"} based on your goal.${ageNote} Scroll down to see the comparison and adjust anything.`;
+      note.className = "text-xs text-gain";
+    }
+
+    function setChartMode(m: "sip" | "lumpsum") {
+      chartMode = m;
+      document.getElementById("chart-mode-sip")!.classList.toggle("bg-indigo", m === "sip");
+      document.getElementById("chart-mode-sip")!.classList.toggle("text-paper", m === "sip");
+      document.getElementById("chart-mode-lumpsum")!.classList.toggle("bg-indigo", m === "lumpsum");
+      document.getElementById("chart-mode-lumpsum")!.classList.toggle("text-paper", m === "lumpsum");
+      renderChart();
+    }
+
+    async function init() {
+      try {
+        const snap = await getDoc(doc(db, "settings", "inflationRate"));
+        if (snap.exists() && typeof snap.data().rate === "number") inflationRate = snap.data().rate;
+      } catch {}
+
+      const params = new URLSearchParams(window.location.search);
+      const linkedCat = params.get("cat");
+      const linkedFund = params.get("fund");
+      if (linkedCat && linkedFund) {
+        fundSlots = [{ category: linkedCat, fundId: linkedFund }];
+      }
+
+      const statusEl = document.getElementById("data-status")!;
+      getFundsProgressive(
+        (firstBatch) => {
+          allFunds = firstBatch;
+          averageReturnCache = averageReturn(allFunds, ["Equity - Index"]);
+          statusEl.textContent = allFunds.length ? `${allFunds.length} funds so far — loading the rest...` : "No fund data uploaded yet.";
+          renderAll(); renderChart();
+        },
+        (fullData) => {
+          allFunds = fullData;
+          averageReturnCache = averageReturn(allFunds, ["Equity - Index"]);
+          statusEl.textContent = allFunds.length ? `Comparing against inflation of ${inflationRate}% and ${allFunds.length} real funds.` : "No fund data uploaded yet.";
+          renderAll(); renderChart();
+        }
+      );
+
+      document.getElementById("show-sip")?.addEventListener("change", (e) => {
+        showSip = (e.target as HTMLInputElement).checked;
+        renderAll();
+      });
+      document.getElementById("show-lumpsum")?.addEventListener("change", (e) => {
+        showLumpsum = (e.target as HTMLInputElement).checked;
+        renderAll();
+      });
+      document.getElementById("sip-amount")?.addEventListener("input", () => { renderAll(); renderChart(); });
+      document.getElementById("lumpsum-amount")?.addEventListener("input", () => { renderAll(); renderChart(); });
+      document.getElementById("years-input")?.addEventListener("input", setPeriod);
+      document.getElementById("months-input")?.addEventListener("input", setPeriod);
+      document.getElementById("years-slider")?.addEventListener("input", (e) => {
+        (document.getElementById("years-input") as HTMLInputElement).value = (e.target as HTMLInputElement).value;
+        setPeriod();
+      });
+      document.getElementById("objective-suggest")?.addEventListener("click", suggestFunds);
+      document.getElementById("shariah-only")?.addEventListener("change", (e) => {
+        shariahOnly = (e.target as HTMLInputElement).checked;
+        renderAll(); renderChart();
+      });
+      document.getElementById("chart-mode-sip")?.addEventListener("click", () => setChartMode("sip"));
+      document.getElementById("chart-mode-lumpsum")?.addEventListener("click", () => setChartMode("lumpsum"));
+      document.getElementById("add-fund-btn")?.addEventListener("click", () => {
+        if (fundSlots.length < 3) {
+          fundSlots.push({ category: "", fundId: "" });
+          renderAll(); renderChart();
+          updateAddButton();
+        }
+      });
+
+      setChartMode("sip");
+      setPeriod();
+      updateAddButton();
+    }
+
+    init();
+  </script>
+</Layout>

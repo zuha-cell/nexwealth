@@ -1,0 +1,81 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="STP Calculator" description="See how your money splits between source and target funds with a Systematic Transfer Plan.">
+  <section class="max-w-2xl mx-auto px-6 py-16">
+    <p class="font-mono text-xs tracking-widest uppercase text-gold mb-3">Calculator</p>
+    <h1 class="font-display text-4xl text-indigo mb-3">STP Calculator</h1>
+    <p class="text-ink/65 mb-8">Move a lumpsum gradually from one fund (e.g. Liquid) into another (e.g. Equity) via fixed monthly transfers.</p>
+
+    <div class="grid gap-6 bg-white/60 border border-line rounded-2xl p-8 mb-8">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Starting lumpsum in source fund (₹)</span>
+        <input type="number" id="source-amount" value="500000" min="0" step="10000" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Monthly transfer amount (₹)</span>
+        <input type="number" id="transfer" value="20000" min="0" step="500" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <label class="grid gap-2">
+          <span class="text-sm font-medium">Source fund return (%, e.g. Liquid)</span>
+          <input type="number" id="source-rate" value="6.5" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+        </label>
+        <label class="grid gap-2">
+          <span class="text-sm font-medium">Target fund return (%, e.g. Equity)</span>
+          <input type="number" id="target-rate" value="12" step="0.1" class="border border-line rounded-lg px-4 py-2 font-mono" />
+        </label>
+      </div>
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Transfer period (months)</span>
+        <input type="number" id="months" value="12" min="1" max="60" class="border border-line rounded-lg px-4 py-2 font-mono" />
+      </label>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-4">
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Remaining in source</p>
+        <p id="source-result" class="font-mono text-xl text-indigo">₹0</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6">
+        <p class="text-xs uppercase tracking-wide text-ink/50 mb-1">Grown in target</p>
+        <p id="target-result" class="font-mono text-xl text-gain">₹0</p>
+      </div>
+      <div class="border border-line rounded-2xl p-6 bg-indigo">
+        <p class="text-xs uppercase tracking-wide text-paper/60 mb-1">Combined total</p>
+        <p id="total-result" class="font-mono text-xl text-paper">₹0</p>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function fmtINR(n: number) {
+      return "₹" + Math.round(n).toLocaleString("en-IN");
+    }
+    function calculate() {
+      const sourceAmount = Number((document.getElementById("source-amount") as HTMLInputElement).value) || 0;
+      const transfer = Number((document.getElementById("transfer") as HTMLInputElement).value) || 0;
+      const sourceRate = Number((document.getElementById("source-rate") as HTMLInputElement).value) || 0;
+      const targetRate = Number((document.getElementById("target-rate") as HTMLInputElement).value) || 0;
+      const months = Number((document.getElementById("months") as HTMLInputElement).value) || 0;
+
+      let source = sourceAmount;
+      const sourceMonthlyRate = sourceRate / 100 / 12;
+      for (let m = 0; m < months; m++) {
+        source = source * (1 + sourceMonthlyRate) - transfer;
+      }
+      source = Math.max(0, source);
+
+      // Target: SIP-style growth from the transferred amounts.
+      const i = targetRate / 100 / 12;
+      const target = i === 0 ? transfer * months : transfer * ((Math.pow(1 + i, months) - 1) / i) * (1 + i);
+
+      document.getElementById("source-result")!.textContent = fmtINR(source);
+      document.getElementById("target-result")!.textContent = fmtINR(target);
+      document.getElementById("total-result")!.textContent = fmtINR(source + target);
+    }
+    document.querySelectorAll("input").forEach((el) => el.addEventListener("input", calculate));
+    calculate();
+  </script>
+</Layout>

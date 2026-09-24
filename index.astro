@@ -1,0 +1,118 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Admin Login">
+  <section class="max-w-sm mx-auto px-6 py-24">
+    <h1 class="font-display text-3xl text-indigo mb-8">Admin login</h1>
+
+    <form id="login-form" class="grid gap-4">
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Email</span>
+        <input required name="email" type="email" class="border border-line rounded-lg px-4 py-2 focus:border-indigo outline-none" />
+      </label>
+
+      <label class="grid gap-2">
+        <span class="text-sm font-medium">Password</span>
+        <div class="relative">
+          <input required name="password" id="password-input" type="password" autocomplete="current-password"
+            style="padding-right: 2.75rem;"
+            class="border border-line rounded-lg px-4 py-2 w-full focus:border-indigo outline-none" />
+          <button type="button" id="toggle-password"
+            style="z-index: 5;"
+            class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-ink/50 hover:text-indigo text-base rounded"
+            aria-label="Show password">
+            👁
+          </button>
+        </div>
+      </label>
+
+      <button type="submit" class="bg-indigo text-paper px-6 py-3 rounded-full font-medium hover:bg-indigoLight transition-colors">
+        Log in
+      </button>
+      <button type="button" id="forgot-password" class="text-sm text-indigo underline text-left">
+        Forgot password?
+      </button>
+      <p id="login-status" class="text-sm"></p>
+    </form>
+
+    <p class="text-xs text-ink/40 mt-8">
+      Reset emails come from Firebase and can land in spam — check there if
+      it doesn't show up in a minute or two. If it never arrives at all, use
+      the manual reset in Firebase Console → Authentication → Users → your
+      admin user → Reset password instead.
+    </p>
+  </section>
+
+  <script>
+    import { auth } from "../../lib/firebase";
+    import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+
+    const form = document.getElementById("login-form") as HTMLFormElement;
+    const status = document.getElementById("login-status")!;
+    const passwordInput = document.getElementById("password-input") as HTMLInputElement;
+    const toggleBtn = document.getElementById("toggle-password")!;
+
+    function setStatus(message: string, kind: "error" | "success" | "neutral") {
+      status.textContent = message;
+      status.className =
+        "text-sm " + (kind === "error" ? "text-loss" : kind === "success" ? "text-gain" : "text-ink/60");
+    }
+
+    toggleBtn.addEventListener("click", () => {
+      const showing = passwordInput.type === "text";
+      passwordInput.type = showing ? "password" : "text";
+      toggleBtn.textContent = showing ? "👁" : "🙈";
+      toggleBtn.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+    });
+
+    function friendlyAuthError(code: string): string {
+      switch (code) {
+        case "auth/invalid-email":
+          return "That email address doesn't look valid.";
+        case "auth/user-not-found":
+          return "No admin account found with that email.";
+        case "auth/wrong-password":
+        case "auth/invalid-credential":
+          return "Wrong password — try again, or use Forgot password below.";
+        case "auth/too-many-requests":
+          return "Too many failed attempts — wait a bit before trying again.";
+        default:
+          return `Login failed (${code}).`;
+      }
+    }
+
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+      setStatus("Logging in...", "neutral");
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          data.get("email") as string,
+          data.get("password") as string
+        );
+        window.location.href = "/admin/upload";
+      } catch (err: any) {
+        setStatus(friendlyAuthError(err?.code ?? "unknown"), "error");
+      }
+    });
+
+    document.getElementById("forgot-password")?.addEventListener("click", async () => {
+      const emailInput = form.querySelector("input[name=email]") as HTMLInputElement;
+      const email = emailInput.value.trim();
+      if (!email) {
+        setStatus("Type your admin email above first, then click Forgot password.", "error");
+        emailInput.focus();
+        return;
+      }
+      setStatus("Sending reset email...", "neutral");
+      try {
+        await sendPasswordResetEmail(auth, email);
+        setStatus(`Reset email sent to ${email} — check your inbox (and spam folder).`, "success");
+      } catch (err: any) {
+        setStatus(friendlyAuthError(err?.code ?? "unknown") + " If this keeps failing, reset it manually from Firebase Console instead.", "error");
+      }
+    });
+  </script>
+</Layout>

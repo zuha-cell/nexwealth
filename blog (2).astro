@@ -1,0 +1,50 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Blog" description="Notes on rates, markets, and money habits.">
+  <section class="max-w-3xl mx-auto px-6 py-16">
+    <h1 class="font-display text-4xl text-indigo mb-3">Blog</h1>
+    <p class="text-ink/65 mb-10">Notes on rates, markets, and money habits — updated as things happen worth writing about.</p>
+
+    <p id="data-status" class="text-xs text-ink/45 mb-4">Loading posts...</p>
+    <div id="post-list" class="space-y-6"></div>
+  </section>
+
+  <script>
+    import { db } from "../lib/firebase";
+    import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+
+    interface Post { title: string; slug: string; excerpt: string }
+
+    async function init() {
+      const statusEl = document.getElementById("data-status")!;
+      const list = document.getElementById("post-list")!;
+      try {
+        const snap = await getDocs(
+          query(collection(db, "blogPosts"), where("published", "==", true), orderBy("createdAt", "desc"))
+        );
+        const posts = snap.docs.map((d) => d.data() as Post);
+
+        if (!posts.length) {
+          statusEl.textContent = "No posts published yet — check back soon.";
+          return;
+        }
+        statusEl.textContent = "";
+
+        list.innerHTML = posts
+          .map(
+            (p) => `
+          <a href="/blog/post?slug=${encodeURIComponent(p.slug)}" class="block border border-line rounded-2xl p-6 hover:border-indigo transition-colors">
+            <h2 class="font-display text-xl text-indigo mb-2">${p.title}</h2>
+            <p class="text-sm text-ink/65">${p.excerpt}</p>
+          </a>`
+          )
+          .join("");
+      } catch {
+        statusEl.textContent = "Couldn't load posts right now.";
+      }
+    }
+    init();
+  </script>
+</Layout>

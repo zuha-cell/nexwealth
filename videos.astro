@@ -1,0 +1,128 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Admin — Video Library">
+  <section class="max-w-3xl mx-auto px-6 py-16">
+    <p id="auth-check" class="text-sm text-ink/50">Checking login...</p>
+
+    <div id="panel" class="hidden">
+      <h1 class="font-display text-2xl text-indigo mb-6">Video Library</h1>
+
+      <div class="border border-line rounded-2xl p-6 mb-8">
+        <h2 class="font-display text-lg text-indigo mb-4">Add a video</h2>
+        <div class="grid gap-4">
+          <label class="grid gap-1">
+            <span class="text-xs font-medium text-ink/60">Title</span>
+            <input id="video-title" type="text" class="border border-line rounded-lg px-3 py-2" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-xs font-medium text-ink/60">YouTube URL or video ID</span>
+            <input id="video-url" type="text" placeholder="https://www.youtube.com/watch?v=..." class="border border-line rounded-lg px-3 py-2" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-xs font-medium text-ink/60">Short description</span>
+            <textarea id="video-desc" rows="2" class="border border-line rounded-lg px-3 py-2"></textarea>
+          </label>
+        </div>
+        <button id="save-video" class="mt-4 bg-indigo text-paper px-5 py-2 rounded-full text-sm font-medium hover:bg-indigoLight transition-colors">Add video</button>
+        <p id="save-status" class="text-xs text-gain mt-3"></p>
+      </div>
+
+      <h2 class="font-display text-lg text-indigo mb-4">All videos</h2>
+      <div id="video-list" class="border border-line rounded-2xl divide-y divide-line"></div>
+    </div>
+  </section>
+
+  <script>
+    import { auth, db } from "../../lib/firebase";
+    import { onAuthStateChanged } from "firebase/auth";
+    import { collection, getDocs, doc, setDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+
+    interface Video { id: string; title: string; youtubeId: string; description: string }
+    let videos: Video[] = [];
+
+    function extractYoutubeId(input: string): string {
+      const trimmed = input.trim();
+      const match = trimmed.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+      if (match) return match[1];
+      if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+      return trimmed;
+    }
+
+    function renderList() {
+      const wrap = document.getElementById("video-list")!;
+      if (!videos.length) {
+        wrap.innerHTML = `<div class="p-4 text-sm text-ink/40">No videos yet.</div>`;
+        return;
+      }
+      wrap.innerHTML = videos
+        .map(
+          (v) => `
+        <div class="p-4 flex items-center justify-between gap-4">
+          <div>
+            <p class="font-medium text-indigo text-sm">${v.title}</p>
+            <p class="text-xs text-ink/45">${v.youtubeId}</p>
+          </div>
+          <button data-id="${v.id}" class="delete-video text-xs text-loss underline shrink-0">Delete</button>
+        </div>`
+        )
+        .join("");
+
+      wrap.querySelectorAll<HTMLButtonElement>(".delete-video").forEach((el) => {
+        el.addEventListener("click", async () => {
+          if (!confirm("Delete this video?")) return;
+          await deleteDoc(doc(db, "videos", el.dataset.id!));
+          await loadVideos();
+        });
+      });
+    }
+
+    async function loadVideos() {
+      const snap = await getDocs(query(collection(db, "videos"), orderBy("createdAt", "desc")));
+      videos = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Video));
+      renderList();
+    }
+
+    document.getElementById("save-video")?.addEventListener("click", async () => {
+      const status = document.getElementById("save-status")!;
+      const title = (document.getElementById("video-title") as HTMLInputElement).value.trim();
+      const urlInput = (document.getElementById("video-url") as HTMLInputElement).value.trim();
+      const description = (document.getElementById("video-desc") as HTMLTextAreaElement).value.trim();
+      const youtubeId = extractYoutubeId(urlInput);
+
+      if (!title || !youtubeId) {
+        status.textContent = "Title and a valid YouTube URL/ID are required.";
+        status.className = "text-xs text-loss mt-3";
+        return;
+      }
+
+      try {
+        await setDoc(doc(collection(db, "videos")), {
+          title, youtubeId, description, createdAt: serverTimestamp(),
+        });
+        status.textContent = "Added.";
+        status.className = "text-xs text-gain mt-3";
+        (document.getElementById("video-title") as HTMLInputElement).value = "";
+        (document.getElementById("video-url") as HTMLInputElement).value = "";
+        (document.getElementById("video-desc") as HTMLTextAreaElement).value = "";
+        await loadVideos();
+      } catch {
+        status.textContent = "Failed to save.";
+        status.className = "text-xs text-loss mt-3";
+      }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      const authCheck = document.getElementById("auth-check")!;
+      const panel = document.getElementById("panel")!;
+      if (!user) {
+        window.location.href = "/admin";
+        return;
+      }
+      authCheck.classList.add("hidden");
+      panel.classList.remove("hidden");
+      await loadVideos();
+    });
+  </script>
+</Layout>

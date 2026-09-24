@@ -1,0 +1,66 @@
+---
+// Email opt-in widget. Included in the site footer so it appears everywhere.
+---
+
+<div class="border border-line rounded-2xl p-6 bg-indigo/5">
+  <h3 class="font-display text-base text-indigo mb-1">Get investment tips by email</h3>
+  <p class="text-xs text-ink/60 mb-4">Occasional market notes, calculator updates, and offers. Unsubscribe anytime.</p>
+
+  <form id="newsletter-form" class="flex flex-col sm:flex-row gap-2">
+    <input
+      required type="email" name="email" placeholder="you@example.com"
+      class="flex-1 border border-line rounded-lg px-3 py-2 text-sm focus:border-indigo outline-none bg-white"
+    />
+    <button type="submit" class="bg-indigo text-paper px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigoLight transition-colors whitespace-nowrap">
+      Subscribe
+    </button>
+  </form>
+  <label class="flex items-start gap-2 mt-3 text-xs text-ink/60">
+    <input required type="checkbox" id="newsletter-consent" class="mt-0.5" />
+    <span>I agree to receive promotional emails from NEXWEALTH.</span>
+  </label>
+  <p id="newsletter-status" class="text-xs mt-2"></p>
+</div>
+
+<script>
+  import { db } from "../lib/firebase";
+  import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+
+  const form = document.getElementById("newsletter-form") as HTMLFormElement;
+  const consentBox = document.getElementById("newsletter-consent") as HTMLInputElement;
+  const status = document.getElementById("newsletter-status")!;
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!consentBox.checked) {
+      status.textContent = "Please check the consent box to subscribe.";
+      status.className = "text-xs mt-2 text-loss";
+      return;
+    }
+    const email = (new FormData(form).get("email") as string || "").trim();
+    if (!email) return;
+
+    const btn = form.querySelector("button[type=submit]") as HTMLButtonElement;
+    btn.disabled = true;
+
+    try {
+      await addDoc(collection(db, "subscribers"), {
+        email,
+        channel: "email",
+        consent: true,
+        createdAt: serverTimestamp(),
+        source: typeof window !== "undefined" ? window.location.pathname : "unknown",
+      });
+      status.textContent = "Subscribed — thanks!";
+      status.className = "text-xs mt-2 text-gain";
+      form.reset();
+      consentBox.checked = false;
+    } catch (err) {
+      status.textContent = "Something went wrong — please try again.";
+      status.className = "text-xs mt-2 text-loss";
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>

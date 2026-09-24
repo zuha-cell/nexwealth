@@ -1,4 +1,4 @@
-# NEXWEALTH — starter scaffold
+# NEXWEALTH — starter scaffold 
 
 Matches Phase 1 of the Master Blueprint: Astro + Tailwind frontend, Firebase
 backend, deployed to Cloudflare Pages. One calculator (SIP) is fully wired up
